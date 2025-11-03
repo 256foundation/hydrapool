@@ -46,6 +46,40 @@ At the very least you will need to edit bitcoinrpc, zmqpubhashblock
 and network (signet/main) to match your bitcoin node's settings. If
 you use main network, change the bootstrap_address too.
 
+### Edit bitcoin.conf
+You potentially need to reconfigure your Bitcoin node to allow RPC access from
+the network location at which Hydrapool is running.
+
+The provided docker-compose.yml runs Hydrapool and the monitoring containers
+on an isolated, bridged network. Docker typically uses a `/16` subnet from the
+`172.16.0.0/12` private network range, with a gateway to the host at
+`172.16.0.1`, `172.17.0.1`, ... . For the case where the Bitcoin node and
+Docker are on the same machine, docker-compose.yml exposes the special
+hostname `host.docker.internal` inside the Hydrapool container, which resolves
+to the gateway address. This special hostname is used in Bitcoin node URLs in
+Hydrapool's config.toml.
+
+If the Bitcoin node is on the same host as Docker, configure the Bitcoin node
+to accept connections from the bridged network, and allow access from addresses
+in the bridged network's subnet. For example, Bitcoin Core would require
+something like:
+```
+# bitcoin.conf
+
+....
+
+# allow connections from all interfaces, not just localhost
+rpcbind=0.0.0.0
+
+# allow Docker's bridged networks (for Hydrapool)
+rpcallowip=172.16.0.0/12
+```
+
+If the Bitcoin node is on a different host than Docker, configure Hydrapool's
+Bitcoin node URLs to point to that host. The Bitcoin node must accept
+connections and allow RPC from the Docker host, since container traffic will be
+NATed and appear to originate from the Docker host's IP address.
+
 ### Start pool
 ```bash
 docker compose -f docker-compose.yml up
