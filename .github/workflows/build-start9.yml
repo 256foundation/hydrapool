@@ -1,0 +1,251 @@
+name: Build Start9 Package
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (overrides version from Cargo.toml)'
+        required: false
+        type: string
+      release:
+        description: 'Create GitHub Release'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-start9:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.88.0
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Install Start SDK
+      run: |
+        curl -L https://github.com/Start9Labs/start-sdk/releases/latest/download/start-sdk-linux-x86_64.tar.gz | tar xz
+        sudo mv start-sdk /usr/local/bin/
+        start-sdk --version
+
+    - name: Install Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Get package version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Package version: $VERSION"
+
+    - name: Build Rust binaries
+      run: |
+        cd start9
+        make dev-build
+        cargo test --release
+
+    - name: Build and export Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./start9
+        platforms: linux/amd64,linux/arm64
+        push: false
+        tags: hydrapool-start9:latest
+        outputs: type=docker,dest=/tmp/hydrapool-start9.tar
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Load Docker image
+      run: |
+        docker load --input /tmp/hydrapool-start9.tar
+        docker images
+
+    - name: Create Start9 package
+      run: |
+        cd start9
+        export PKG_VERSION="${{ steps.version.outputs.version }}"
+        echo "Building Start9 package version: $PKG_VERSION"
+        
+        # Create package directory structure
+        mkdir -p dist
+        
+        # Export Docker image for Start9
+        docker save hydrapool-start9:latest | gzip > dist/image.tar.gz
+        
+        # Copy all required files
+        cp manifest.yaml dist/
+        cp -r assets dist/
+        cp README.md dist/
+        cp instructions.md dist/
+        cp LICENSE ../dist/ 2>/dev/null || echo "LICENSE not found, continuing..."
+        
+        # Create icon placeholder if not present
+        if [ ! -f icon.png ]; then
+          echo "Creating placeholder icon..."
+          # Create a simple 256x256 PNG icon (this would need to be replaced with actual icon)
+          convert -size 256x256 xc:blue -pointsize 72 -fill white -gravity center \
+                  -annotate +0+0 "HP" icon.png 2>/dev/null || \
+          echo "⚠️  Icon creation failed, please add icon.png manually"
+        fi
+        
+        if [ -f icon.png ]; then
+          cp icon.png dist/
+        fi
+        
+        # Build the .s9pk package
+        start-sdk pack "$PKG_VERSION"
+        
+        # Verify the package
+        start-sdk verify
+        
+        # List created files
+        ls -la *.s9pk || echo "No .s9pk file found"
+        ls -la dist/
+
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: hydrapool-start9-packages
+        path: |
+          start9/*.s9pk
+          start9/dist/
+        retention-days: 30
+
+    - name: Push Docker image
+      if: github.event_name != 'pull_request'
+      uses: docker/build-push-action@v5
+      with:
+        context: ./start9
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  create-release:
+    needs: build-start9
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release == 'true')
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: hydrapool-start9-packages
+        path: artifacts
+
+    - name: Extract version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Release version: $VERSION"
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: Hydra-Pool v${{ steps.version.outputs.version }}
+        body: |
+          ## Hydra-Pool v${{ steps.version.outputs.version }}
+          
+          ### Start9 Package
+          This release includes a Start9 package (.s9pk) for easy installation on StartOS servers.
+          
+          ### Installation
+          1. Download the `.s9pk` file from this release
+          2. In StartOS, navigate to **Marketplace** → **Install Package**
+          3. Upload the `.s9pk` file and follow the configuration wizard
+          
+          ### Docker Images
+          Docker images are also available:
+          ```bash
+          docker pull ghcr.io/256-foundation/hydrapool:latest
+          docker pull ghcr.io/256-foundation/hydrapool:v${{ steps.version.outputs.version }}
+          ```
+          
+          ### Changelog
+          See the [CHANGELOG](https://github.com/256-Foundation/Hydra-Pool/blob/main/CHANGELOG.md) for detailed changes.
+          
+          ### Requirements
+          - StartOS server
+          - Bitcoin node (bitcoind) service
+          - Minimum 2GB RAM, 10GB storage
+          
+          ### Support
+          - [Documentation](https://github.com/256-Foundation/Hydra-Pool/blob/main/start9/README.md)
+          - [Issues](https://github.com/256-Foundation/Hydra-Pool/issues)
+          - [Community](https://t.me/hydrapool)
+        files: |
+          artifacts/*.s9pk
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.version, 'rc') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'alpha') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

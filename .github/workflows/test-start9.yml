@@ -1,0 +1,175 @@
+name: Test Start9 Package
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'start9/**'
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'start9/**'
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+jobs:
+  test-package:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        network: [main, testnet4, signet]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.88.0
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Install Start SDK
+      run: |
+        curl -L https://github.com/Start9Labs/start-sdk/releases/latest/download/start-sdk-linux-x86_64.tar.gz | tar xz
+        sudo mv start-sdk /usr/local/bin/
+        start-sdk --version
+
+    - name: Install Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Run Rust tests
+      run: |
+        cargo test --release
+        cargo clippy --no-deps -- -D warnings
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./start9
+        platforms: linux/amd64
+        push: false
+        tags: hydrapool-test:latest
+        load: true
+
+    - name: Create test configuration
+      run: |
+        cd start9
+        
+        # Create test config based on network
+        cat > test-config.json << EOF
+        {
+          "bitcoin-network": "${{ matrix.network }}",
+          "bootstrap-address": "tb1qyazxde6558qj6z3d9np5e6msmrspwpf6k0qggk",
+          "pool-fee": 100,
+          "donation-fee": 50,
+          "difficulty-multiplier": 1.0,
+          "pool-signature": "test-hydrapool",
+          "log-level": "debug",
+          "bitcoin-rpc-url": "http://mock-bitcoin:8332",
+          "bitcoin-rpc-user": "testuser",
+          "bitcoin-rpc-password": "testpass",
+          "bitcoin-zmq-url": "tcp://mock-bitcoin:28334"
+        }
+        EOF
+
+    - name: Test package creation
+      run: |
+        cd start9
+        
+        # Test package creation
+        export PKG_VERSION="test-${{ matrix.network }}-${{ github.sha }}"
+        
+        # Create minimal package structure for testing
+        mkdir -p test-dist
+        cp manifest.yaml test-dist/
+        cp -r assets test-dist/
+        cp README.md test-dist/
+        cp instructions.md test-dist/
+        
+        # Create test icon
+        convert -size 256x256 xc:green -pointsize 72 -fill white -gravity center \
+                -annotate +0+0 "TEST" test-dist/icon.png 2>/dev/null || \
+        echo "⚠️  Icon creation failed"
+        
+        # Export Docker image
+        docker save hydrapool-test:latest | gzip > test-dist/image.tar.gz
+        
+        # Build package
+        start-sdk pack "$PKG_VERSION" --working-dir test-dist
+        
+        # Verify package
+        start-sdk verify --working-dir test-dist
+        
+        # List created files
+        ls -la test-dist/*.s9pk || echo "No .s9pk file found"
+
+    - name: Test configuration scripts
+      run: |
+        cd start9
+        
+        # Test config-get script
+        if [ -f config-get.sh ]; then
+          echo "Testing config-get.sh..."
+          bash -n config-get.sh
+        fi
+        
+        # Test config-set script
+        if [ -f config-set.sh ]; then
+          echo "Testing config-set.sh..."
+          bash -n config-set.sh
+        fi
+        
+        # Test health check script
+        if [ -f health_check.sh ]; then
+          echo "Testing health_check.sh..."
+          bash -n health_check.sh
+        fi
+        
+        # Test entrypoint script
+        if [ -f docker_entrypoint.sh ]; then
+          echo "Testing docker_entrypoint.sh..."
+          bash -n docker_entrypoint.sh
+        fi
+
+    - name: Test Bitcoin integration scripts
+      run: |
+        cd start9
+        
+        # Test Bitcoin check script
+        if [ -f bitcoin-check.sh ]; then
+          echo "Testing bitcoin-check.sh..."
+          bash -n bitcoin-check.sh
+        fi
+        
+        # Test Bitcoin autoconfigure script
+        if [ -f bitcoin-autoconfigure.sh ]; then
+          echo "Testing bitcoin-autoconfigure.sh..."
+          bash -n bitcoin-autoconfigure.sh
+        fi
+
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-artifacts-${{ matrix.network }}
+        path: |
+          start9/test-dist/
+          start9/*.s9pk
+        retention-days: 7
