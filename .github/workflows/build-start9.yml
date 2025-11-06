@@ -41,6 +41,10 @@ jobs:
       with:
         toolchain: 1.88.0
 
+    - name: Install just
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
     - name: Cache Rust dependencies
       uses: actions/cache@v4
       with:
