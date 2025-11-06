@@ -70,9 +70,11 @@ jobs:
         sudo npm install -g .
         cd ..
         
-        # Add npm global bin to PATH and test
-        export PATH="$(npm config get prefix)/bin:$PATH"
-        start-sdk --version
+        # Use full path to start-sdk and add to PATH for subsequent steps
+        NPM_PREFIX=$(npm config get prefix)
+        echo "NPM_PREFIX=$NPM_PREFIX"
+        echo "$NPM_PREFIX/bin" >> $GITHUB_PATH
+        $NPM_PREFIX/bin/start-sdk --version
 
     - name: Install Docker Buildx
       uses: docker/setup-buildx-action@v3
