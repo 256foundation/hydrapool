@@ -11,8 +11,15 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      rust-overlay,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -21,10 +28,15 @@
 
         # Simple Rust toolchain
         rustToolchain = pkgs.rust-bin.stable."1.88.0".default.override {
-          extensions = [ "rust-src" "rustfmt" "clippy" ];
+          extensions = [
+            "rust-src"
+            "rustfmt"
+            "clippy"
+          ];
         };
 
-      in {
+      in
+      {
         # Development shell
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
@@ -57,10 +69,10 @@
             export LLVM_CONFIG_PATH="${pkgs.llvmPackages.llvm}/bin/llvm-config"
             export CC="clang"
             export CXX="clang++"
-            
+
             # Add LLVM libraries to LD_LIBRARY_PATH
             export LD_LIBRARY_PATH="${pkgs.llvmPackages.libclang.lib}/lib:${pkgs.llvmPackages.llvm.lib}:$LD_LIBRARY_PATH"
-            
+
             # Rust-specific environment
             export RUST_LOG=debug
             export PKG_VERSION="1.1.18"
@@ -86,5 +98,6 @@
             echo ""
           '';
         };
-      });
+      }
+    );
 }
