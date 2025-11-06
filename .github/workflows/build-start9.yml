@@ -119,7 +119,7 @@ jobs:
 
     - name: Build Rust binaries
       run: |
-        make dev-build
+        just build-release
         cargo test --release
 
     - name: Build and export Docker image
