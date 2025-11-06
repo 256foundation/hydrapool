@@ -70,11 +70,17 @@ jobs:
         sudo npm install -g .
         cd ..
         
-        # Use full path to start-sdk and add to PATH for subsequent steps
+        # Check what was actually installed
         NPM_PREFIX=$(npm config get prefix)
         echo "NPM_PREFIX=$NPM_PREFIX"
-        echo "$NPM_PREFIX/bin" >> $GITHUB_PATH
-        $NPM_PREFIX/bin/start-sdk --version
+        echo "Contents of $NPM_PREFIX/bin:"
+        ls -la $NPM_PREFIX/bin/ || echo "Directory not found"
+        echo "Looking for start-sdk executable:"
+        find $NPM_PREFIX -name "*start-sdk*" -o -name "start-sdk" 2>/dev/null || echo "start-sdk not found"
+        
+        # Try to use npx to run start-sdk instead
+        echo "Using npx to run start-sdk:"
+        npx start-sdk --version || echo "npx failed"
 
     - name: Install Docker Buildx
       uses: docker/setup-buildx-action@v3
