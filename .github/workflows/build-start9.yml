@@ -54,8 +54,17 @@ jobs:
 
     - name: Install Start SDK
       run: |
-        curl -L https://github.com/Start9Labs/start-sdk/releases/latest/download/start-sdk-linux-x86_64.tar.gz | tar xz
-        sudo mv start-sdk /usr/local/bin/
+        # Install Node.js and npm first
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        
+        # Clone and install Start SDK from source
+        git clone https://github.com/Start9Labs/start-sdk.git
+        cd start-sdk
+        npm install
+        npm run buildOutput
+        sudo npm install -g .
+        cd ..
         start-sdk --version
 
     - name: Install Docker Buildx
@@ -95,14 +104,14 @@ jobs:
 
     - name: Build Rust binaries
       run: |
-        cd start9
         make dev-build
         cargo test --release
 
     - name: Build and export Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./start9
+        context: .
+        file: ./start9/Dockerfile
         platforms: linux/amd64,linux/arm64
         push: false
         tags: hydrapool-start9:latest
@@ -132,22 +141,29 @@ jobs:
         cp -r assets dist/
         cp README.md dist/
         cp instructions.md dist/
-        cp LICENSE ../dist/ 2>/dev/null || echo "LICENSE not found, continuing..."
+        cp ../LICENSE ../dist/ 2>/dev/null || echo "LICENSE not found, continuing..."
         
         # Create icon placeholder if not present
         if [ ! -f icon.png ]; then
           echo "Creating placeholder icon..."
-          # Create a simple 256x256 PNG icon (this would need to be replaced with actual icon)
+          # Install ImageMagick for icon creation
+          sudo apt-get update && sudo apt-get install -y imagemagick
+          # Create a simple 256x256 PNG icon
           convert -size 256x256 xc:blue -pointsize 72 -fill white -gravity center \
-                  -annotate +0+0 "HP" icon.png 2>/dev/null || \
-          echo "⚠️  Icon creation failed, please add icon.png manually"
+                  -annotate +0+0 "HP" icon.png || \
+          echo "⚠️  Icon creation failed, will create simple placeholder"
+          
+          # Fallback: create a simple colored square using base64
+          if [ ! -f icon.png ]; then
+            echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" | base64 -d > icon.png
+          fi
         fi
         
         if [ -f icon.png ]; then
           cp icon.png dist/
         fi
         
-        # Build the .s9pk package
+        # Build .s9pk package
         start-sdk pack "$PKG_VERSION"
         
         # Verify the package
@@ -170,7 +186,8 @@ jobs:
       if: github.event_name != 'pull_request'
       uses: docker/build-push-action@v5
       with:
-        context: ./start9
+        context: .
+        file: ./start9/Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}

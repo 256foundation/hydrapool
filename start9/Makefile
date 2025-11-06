@@ -6,7 +6,7 @@ DOCKER_REGISTRY := start9/$(PKG_ID)
 
 # Build the Docker image
 build:
-	cd .. && docker build -t $(DOCKER_REGISTRY)/main:$(PKG_VERSION) -f start9/Dockerfile .
+	docker build -t $(DOCKER_REGISTRY)/main:$(PKG_VERSION) -f Dockerfile ..
 
 # Build for multiple architectures
 build-release:
