@@ -3,7 +3,7 @@ title: Hydra-Pool
 version: 1.1.18
 license: AGPL-3.0
 wrapper-repo: https://github.com/256-Foundation/Hydra-Pool
-build: ["make"]
+build: ["make", "build"]
 description:
   short: Open source Bitcoin mining pool with PPLNS accounting
   long: |
@@ -15,7 +15,7 @@ assets:
 
 main:
   type: docker
-  image: main
+  image: hydrapool-start9
   entrypoint: ["/usr/local/bin/docker_entrypoint.sh"]
   args: ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
   mounts:
