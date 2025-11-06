@@ -63,8 +63,8 @@ COPY --from=prom/prometheus:latest /etc/prometheus /etc/prometheus/
 
 # Copy Grafana files
 COPY --from=grafana/grafana:12.2.0 /usr/share/grafana /usr/share/grafana
-COPY --from=grafana/grafana:12.2.0 /bin/grafana-server /usr/local/bin/
-COPY --from=grafana/grafana:12.2.0 /bin/grafana-cli /usr/local/bin/
+COPY --from=grafana/grafana:12.2.0 /usr/share/grafana/bin/grafana-server /usr/local/bin/
+COPY --from=grafana/grafana:12.2.0 /usr/share/grafana/bin/grafana-cli /usr/local/bin/
 
 # Copy configuration files
 COPY docker/config-example.toml /etc/hydrapool/config.toml.template
