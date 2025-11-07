@@ -134,14 +134,14 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: false
         tags: hydrapool-start9:latest
-        outputs: type=docker,dest=/tmp/hydrapool-start9.tar
+        outputs: type=oci,dest=/tmp/hydrapool-start9.tar
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
     - name: Load Docker image
       run: |
         docker load --input /tmp/hydrapool-start9.tar
-        docker images
+        docker images hydrapool-start9:latest
 
     - name: Create Start9 package
       run: |
