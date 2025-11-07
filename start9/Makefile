@@ -26,16 +26,16 @@ pack: build
 		--tag $(DOCKER_REGISTRY)/main:$(PKG_VERSION) \
 		--platform linux/arm64 \
 		-f Dockerfile \
-		-o type=docker,dest=image.tar .
-	start-sdk pack $(PKG_VERSION)
+		-o type=docker,dest=image.tar ..
+	bash start-sdk pack $(PKG_VERSION)
 
 # Verify the package
 verify: pack
-	start-sdk verify
+	bash start-sdk verify
 
 # Install locally (for testing)
 install: verify
-	start-sdk install
+	bash start-sdk install
 
 # Development helpers
 dev-build:

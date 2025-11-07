@@ -55,7 +55,9 @@
             docker-buildx
             jq
             imagemagick
-            nodejs
+            gnumake
+            nodejs_22
+            nodePackages.npm
             yarn
             # LLVM libraries for Rust compilation
             llvmPackages.libclang
@@ -80,6 +82,26 @@
 
             # Add cargo bin to PATH
             export PATH="$HOME/.cargo/bin:$PATH"
+
+            # Add Node.js and npm to PATH (find latest nodejs in store)
+            NODEJS_PATH=$(find /nix/store -maxdepth 1 -name "nodejs-*" -type d | head -1)
+            if [ -n "$NODEJS_PATH" ] && [ -d "$NODEJS_PATH/bin" ]; then
+              export PATH="$NODEJS_PATH/bin:$PATH"
+            fi
+
+            # Note: Start9 SDK requires manual installation from start-os repository
+            # For now, use mock script in start9/start-sdk for testing
+            echo "📦 Start9 SDK: Using mock script for local development"
+            echo "   To install real SDK: git clone -b sdk --recursive https://github.com/Start9Labs/start-os.git"
+
+            # Ensure docker-container driver for Buildx
+            if ! docker buildx inspect multiarch >/dev/null 2>&1; then
+              echo "Setting up docker-container driver for Buildx..."
+              docker buildx create --name multiarch --driver docker-container --use
+            else
+              echo "Using existing multiarch Buildx builder"
+              docker buildx use multiarch
+            fi
 
             echo "🚀 Hydra-Pool Development Environment"
             echo "====================================="
