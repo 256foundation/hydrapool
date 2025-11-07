@@ -25,25 +25,7 @@ This directory contains GitHub Actions workflows for building and testing the Hy
 - Docker images pushed to GitHub Container Registry
 - GitHub releases with download links
 
-### 2. Test Start9 Package (`test-start9.yml`)
-
-**Triggers:**
-- Push to `main` or `develop` branches (when relevant files change)
-- Pull requests to `main`
-
-**Features:**
-- Matrix testing across Bitcoin networks (main, testnet4, signet)
-- Rust tests and linting
-- Package creation verification
-- Configuration script validation
-- Bitcoin integration script testing
-
-**Test Matrix:**
-- All three Bitcoin networks tested
-- Configuration validation for each network
-- Script syntax checking
-
-### 3. Update Dependencies (`update-dependencies.yml`)
+### 2. Update Dependencies (`update-dependencies.yml`)
 
 **Triggers:**
 - Weekly schedule (Sundays at 2 AM UTC)
