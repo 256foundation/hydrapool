@@ -1,0 +1,115 @@
+name: Update Start9 Dependencies
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.88.0
+
+    - name: Update Rust dependencies
+      run: |
+        echo "Updating Rust dependencies..."
+        cargo update
+        cargo check
+
+    - name: Update Docker base images
+      run: |
+        cd start9
+        
+        echo "Checking for Docker base image updates..."
+        
+        # Extract current base images from Dockerfile
+        grep "^FROM" Dockerfile > current-images.txt
+        
+        echo "Current base images:"
+        cat current-images.txt
+        
+        # Check for updates (this would need more sophisticated logic)
+        echo "Checking for image updates..."
+        
+        # Update Rust version in Dockerfile if needed
+        CURRENT_RUST_VERSION=$(grep "^FROM rust:" Dockerfile | cut -d':' -f2 | cut -d'-' -f1)
+        LATEST_RUST_VERSION=$(curl -s https://api.github.com/repos/rust-lang/rust/releases/latest | jq -r '.tag_name' | sed 's/^rust-//')
+        
+        if [ "$CURRENT_RUST_VERSION" != "$LATEST_RUST_VERSION" ]; then
+          echo "Rust version update available: $CURRENT_RUST_VERSION -> $LATEST_RUST_VERSION"
+          sed -i "s/FROM rust:${CURRENT_RUST_VERSION}/FROM rust:${LATEST_RUST_VERSION}/" Dockerfile
+        fi
+
+    - name: Check Start SDK updates
+      run: |
+        echo "Checking Start SDK updates..."
+        CURRENT_SDK_VERSION=$(start-sdk --version 2>/dev/null || echo "not installed")
+        
+        # Get latest version from GitHub API
+        LATEST_SDK_VERSION=$(curl -s https://api.github.com/repos/Start9Labs/start-sdk/releases/latest | jq -r '.tag_name')
+        
+        echo "Current Start SDK: $CURRENT_SDK_VERSION"
+        echo "Latest Start SDK: $LATEST_SDK_VERSION"
+        
+        if [ "$CURRENT_SDK_VERSION" != "$LATEST_SDK_VERSION" ]; then
+          echo "Start SDK update available"
+          echo "::warning::Start SDK update available: $CURRENT_SDK_VERSION -> $LATEST_SDK_VERSION"
+        fi
+
+    - name: Test build after updates
+      run: |
+        echo "Testing build after dependency updates..."
+        cd start9
+        
+        # Test Rust build
+        cargo check
+        cargo test
+        
+        # Test Docker build
+        docker buildx build \
+          --platform linux/amd64 \
+          --tag hydrapool-test:latest \
+          --load \
+          .
+
+    - name: Create Pull Request if changes exist
+      if: ${{ github.event_name == 'schedule' }}
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update Start9 package dependencies"
+        title: "chore: update Start9 package dependencies"
+        body: |
+          ## Dependency Updates
+          
+          This PR updates dependencies for the Start9 package:
+          
+          - Rust dependencies updated via `cargo update`
+          - Docker base images checked for updates
+          - Start SDK version verified
+          
+          ### Testing
+          
+          - [x] Rust compilation successful
+          - [x] Tests passing
+          - [x] Docker build successful
+          
+          ### Review Notes
+          
+          Please review the changes and ensure all updates are compatible before merging.
+        branch: chore/update-start9-dependencies
+        delete-branch: true
