@@ -28,6 +28,8 @@ pack: build
 		-f Dockerfile \
 		-o type=docker,dest=image.tar ..
 	bash start-sdk pack $(PKG_VERSION)
+	# Clean up unused image.tar to save space
+	rm -f image.tar
 
 # Verify the package
 verify: pack
