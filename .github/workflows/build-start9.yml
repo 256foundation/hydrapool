@@ -71,20 +71,14 @@ jobs:
         # The buildOutput step is only needed for SDK development, not usage
         echo "Skipping buildOutput step due to TypeScript compatibility issues"
         
+        # Install globally and also ensure npx works
         sudo npm install -g .
         cd ..
         
-        # Check what was actually installed
-        NPM_PREFIX=$(npm config get prefix)
-        echo "NPM_PREFIX=$NPM_PREFIX"
-        echo "Contents of $NPM_PREFIX/bin:"
-        ls -la $NPM_PREFIX/bin/ || echo "Directory not found"
-        echo "Looking for start-sdk executable:"
-        find $NPM_PREFIX -name "*start-sdk*" -o -name "start-sdk" 2>/dev/null || echo "start-sdk not found"
-        
-        # Try to use npx to run start-sdk instead
-        echo "Using npx to run start-sdk:"
-        npx start-sdk --version || echo "npx failed"
+        # Verify installation
+        echo "Testing start-sdk installation:"
+        npx start-sdk --version || echo "npx start-sdk failed, trying global installation"
+        start-sdk --version || echo "Global start-sdk failed, will use npx in workflow"
 
     - name: Install Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -131,10 +125,10 @@ jobs:
       with:
         context: .
         file: ./start9/Dockerfile
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: false
         tags: hydrapool-start9:latest
-        outputs: type=oci,dest=/tmp/hydrapool-start9.tar
+        outputs: type=docker,dest=/tmp/hydrapool-start9.tar
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -183,10 +177,10 @@ jobs:
         fi
         
         # Build .s9pk package
-        start-sdk pack "$PKG_VERSION"
+        npx start-sdk pack "$PKG_VERSION"
         
         # Verify the package
-        start-sdk verify
+        npx start-sdk verify
         
         # List created files
         ls -la *.s9pk || echo "No .s9pk file found"
