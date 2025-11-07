@@ -42,6 +42,14 @@ properties:
     minimum: 0.1
     maximum: 10.0
 
+  pplns-ttl-days:
+    type: integer
+    title: PPLNS TTL Days
+    description: Time-to-live for PPLNS share window - how long shares remain valid for payment calculation
+    default: 7
+    minimum: 1
+    maximum: 30
+
   pool-signature:
     type: string
     title: Pool Signature

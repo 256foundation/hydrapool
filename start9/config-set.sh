@@ -21,6 +21,7 @@ BOOTSTRAP_ADDRESS=$(get_json_value "bootstrap-address")
 POOL_FEE=$(get_json_value "pool-fee")
 DONATION_FEE=$(get_json_value "donation-fee")
 DIFFICULTY_MULTIPLIER=$(get_json_value "difficulty-multiplier")
+PPLNS_TTL_DAYS=$(get_json_value "pplns-ttl-days")
 POOL_SIGNATURE=$(get_json_value "pool-signature")
 LOG_LEVEL=$(get_json_value "log-level")
 BITCOIN_RPC_URL=$(get_json_value "bitcoin-rpc-url")
@@ -43,6 +44,7 @@ sed -i "s/bootstrap_address = \".*\"/bootstrap_address = \"$BOOTSTRAP_ADDRESS\"/
 sed -i "s/donation = .*/donation = $DONATION_FEE/g" "$CONFIG_FILE"
 sed -i "s/fee = .*/fee = $POOL_FEE/g" "$CONFIG_FILE"
 sed -i "s/difficulty_multiplier = .*/difficulty_multiplier = $DIFFICULTY_MULTIPLIER/g" "$CONFIG_FILE"
+sed -i "s/pplns_ttl_days = .*/pplns_ttl_days = $PPLNS_TTL_DAYS/g" "$CONFIG_FILE"
 sed -i "s/pool_signature = \".*\"/pool_signature = \"$POOL_SIGNATURE\"/g" "$CONFIG_FILE"
 sed -i "s/level = \".*\"/level = \"$LOG_LEVEL\"/g" "$CONFIG_FILE"
 sed -i "s|url = \".*\"|url = \"$BITCOIN_RPC_URL\"|g" "$CONFIG_FILE"
