@@ -244,7 +244,34 @@ dashboard.
 
 ## Build from Source
 
-To build from source, use cargo.
+To build from source, verify your Rust version is at least 1.88.0
+```
+rustc --version
+```
+If you need to update rust, it is recommended to use the official install script from 'https://rust-lang.org/tools/install/'
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+On some Ubuntu installations (including 22.04 LTS), there may be an older version of Rust preinstalled, but the latest versions are not accessible from the standard apt or snap repositories.  For the official install script to run, you may need to first manually remove older versions of Rust:
+```
+sudo apt remove rustc cargo libstd-rust-dev
+sudo apt autoremove
+```
+To remove snap versions, first check for snap entries named "rust", "rustc", or "rustup", then remove it ("rust" in this example):
+```
+snap list
+sudo snap remove rust
+```
+Then, you may want to remove any old conflicting files as well:
+```
+# Remove the old, possibly conflicting files installed by previous rustups
+rm -rf "$HOME/.cargo" "$HOME/.rustup"
+
+# Start a fresh shell session to clear any old environment variables
+exec $SHELL
+```
+
+Then build using cargo.
 
 ```
 git clone https://github.com/256-foundation/Hydra-Pool/
@@ -256,6 +283,14 @@ Then run from target directory.
 ```
 ./target/release/hydrapool
 ```
+
+If you get build errors, you may also need to update OpenSSL dev libraries and libclang libraries:
+```
+sudo apt update
+sudo apt install libssl-dev pkg-config
+sudo apt install clang libclang-dev
+```
+
 
 ## Install Hydrapool Binaries
 
