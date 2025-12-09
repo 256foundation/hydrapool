@@ -244,51 +244,70 @@ dashboard.
 
 ## Build from Source
 
-To build from source, verify your Rust version is at least 1.88.0
+To build from source, download this repo and build using cargo:
+```bash
+git clone https://github.com/256-foundation/Hydra-Pool/
+cargo build --release
 ```
+Then enter the settings for your particular node setup in config.toml, and generate an authorization token as explained above.
+
+Finally, run from target directory.
+
+```bash
+./target/release/hydrapool
+```
+To test it, you can send an API command using curl. 
+First, generate a Base64 string of your credentials:
+```bash
+echo -n 'YOUR_USERNAME:YOUR_PASSWORD' | base64
+```
+This will return a string.  Copy it and use it here:
+```bash
+curl -H "Authorization: Basic <BASE64_STRING>" http://localhost:46884/health
+```
+
+### Troubleshooting
+If you have any issues, these might help:
+#### Rust Version 
+First, verify your Rust version is at least 1.88.0
+```bash
 rustc --version
 ```
 If you need to update rust, it is recommended to use the official install script from 'https://rust-lang.org/tools/install/'
-```
+```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 On some Ubuntu installations (including 22.04 LTS), there may be an older version of Rust preinstalled, but the latest versions are not accessible from the standard apt or snap repositories.  For the official install script to run, you may need to first manually remove older versions of Rust:
-```
+```bash
 sudo apt remove rustc cargo libstd-rust-dev
 sudo apt autoremove
 ```
 To remove snap versions, first check for snap entries named "rust", "rustc", or "rustup", then remove it ("rust" in this example):
-```
+```bash
 snap list
 sudo snap remove rust
 ```
 Then, you may want to remove any old conflicting files as well:
-```
+```bash
 # Remove the old, possibly conflicting files installed by previous rustups
 rm -rf "$HOME/.cargo" "$HOME/.rustup"
 
 # Start a fresh shell session to clear any old environment variables
 exec $SHELL
 ```
+Finally, run the official install script again. 
 
-Then build using cargo.
-
-```
-git clone https://github.com/256-foundation/Hydra-Pool/
-cargo build --release
-```
-
-Then run from target directory.
-
-```
-./target/release/hydrapool
-```
-
-If you get build errors, you may also need to update OpenSSL dev libraries and libclang libraries:
-```
+#### Missing libraries
+If you get build errors, you may also need to update certain OpenSSL dev libraries and libclang libraries:
+```bash
 sudo apt update
 sudo apt install libssl-dev pkg-config
 sudo apt install clang libclang-dev
+```
+Then retry the build:
+```bash
+cargo clean
+cargo build --release
 ```
 
 
