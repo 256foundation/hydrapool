@@ -31,10 +31,12 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bitcoin = { version = "0.32.5", features = ["serde", "rand"] }
 tokio = { version = "1.0", features = ["full"] }
-p2poolv2_lib = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_lib", tag = "v0.7.0" }
-p2poolv2_cli = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_cli", tag = "v0.7.0" }
-p2poolv2_api = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_api", tag = "v0.7.0" }
-bitcoindrpc = { git = "https://github.com/p2poolv2/p2poolv2", package = "bitcoindrpc", tag = "v0.7.0" }
+serde_json = "1.0"
+p2poolv2_lib = { git = "https://github.com/keegreil/p2poolv2", package = "p2poolv2_lib", branch = "external-payouts"}
+p2poolv2_cli = { git = "https://github.com/keegreil/p2poolv2", package = "p2poolv2_cli", branch = "external-payouts" }
+p2poolv2_api = { git = "https://github.com/keegreil/p2poolv2", package = "p2poolv2_api", branch = "external-payouts" }
+bitcoindrpc = { git = "https://github.com/keegreil/p2poolv2", package = "bitcoindrpc", branch = "external-payouts" }
+reqwest = { version = "0.11", features = ["json"] }
 
 [[bin]]
 name = "hydrapool"

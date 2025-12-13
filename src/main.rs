@@ -36,6 +36,9 @@ use std::time::Duration;
 use tokio::sync::oneshot;
 use tracing::error;
 use tracing::info;
+use std::fs::File;
+use std::io::Write;
+use serde_json::json;  // For building JSON if needed
 
 /// Interval in seconds to poll for new block templates since the last zmq signal
 const GBT_POLL_INTERVAL: u64 = 10; // seconds
@@ -139,7 +142,35 @@ async fn main() -> Result<(), String> {
         Duration::from_secs(config.store.pplns_ttl_days * 3600 * 24),
     );
 
-    let stratum_config = config.stratum.clone().parse().unwrap();
+    let mut stratum_config = config.stratum.clone().parse().unwrap();
+    let mut payout_file_path = stratum_config.payout_file_path.clone();  // Optional
+
+    // If URL set, spawn fetcher to update file
+    if let Some(ref url) = stratum_config.downstream_payout_url {  // Assume you add this field too (see below)
+        if payout_file_path.is_none() {
+            payout_file_path = Some("/tmp/hydrapool_payouts.json".to_string());  // Default file
+        }
+        if let Some(ref file_path) = payout_file_path {
+            let file_clone = file_path.clone();
+            let url_clone = url.clone();
+            let interval = std::time::Duration::from_secs(config.stratum.payout_refresh_interval);
+            let network = stratum_config.network;  // For addr validation if needed
+
+            tokio::spawn(async move {
+                loop {
+                    if let Err(e) = fetch_and_write_payouts(&url_clone, &file_clone, network).await {
+                        debug!("API fetch/write failed: {}", e);
+                    }
+                    tokio::time::sleep(interval).await;
+                }
+            });
+        }
+    }
+
+    // Set the parsed config's file path
+    stratum_config.payout_file_path = payout_file_path;
+
+
     let bitcoinrpc_config = config.bitcoinrpc.clone();
 
     let (stratum_shutdown_tx, stratum_shutdown_rx) = tokio::sync::oneshot::channel();
@@ -188,7 +219,7 @@ async fn main() -> Result<(), String> {
             store_for_notify,
             tracker_handle_cloned,
             &cloned_stratum_config,
-            None,
+            None, // miner_pubkey: Option<CompressedPublicKey> (unused for now)
         )
         .await;
     });
@@ -212,7 +243,7 @@ async fn main() -> Result<(), String> {
         let mut stratum_server = StratumServerBuilder::default()
             .shutdown_rx(stratum_shutdown_rx)
             .connections_handle(connections_handle.clone())
-            .emissions_tx(emissions_tx)
+            .emissions_tx(shares_tx)  // Changed: emission_tx + Some() wrapper (matches lib sig)
             .hostname(stratum_config.hostname)
             .port(stratum_config.port)
             .start_difficulty(stratum_config.start_difficulty)
@@ -304,5 +335,30 @@ async fn main() -> Result<(), String> {
             return Err(format!("Failed to start node: {e}"));
         }
     }
+    Ok(())
+}
+
+async fn fetch_and_write_payouts(
+    url: &str,
+    file_path: &str,
+    _network: bitcoin::Network,  // Optional: Validate addrs match network
+) -> Result<(), Box<dyn std::error::Error>> {
+    let client = reqwest::Client::new();
+    let resp = client.get(url).send().await?;
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {} from {}", resp.status(), url).into());
+    }
+    let json: serde_json::Value = resp.json().await?;
+
+    // Extract and rewrite WinnersList (keep full structure for future-proofing)
+    let winners = json["WinnersList"].as_array().ok_or("Missing WinnersList")?.clone();
+    let updated_json = json!({
+        "WinnersList": winners,
+        "OnDeckList": json["OnDeckList"],  // Preserve if present
+        "BestShare": json["BestShare"]     // Preserve
+    });
+
+    let mut file = File::create(file_path)?;
+    file.write_all(updated_json.to_string().as_bytes())?;
     Ok(())
 }

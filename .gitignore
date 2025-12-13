@@ -4,3 +4,4 @@ p2pool.log
 .env
 docker/.env
 logs/*
+config_copy.toml
