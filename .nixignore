@@ -1,0 +1,33 @@
+# Nix-specific files for Hydra-Pool
+
+These files are ignored by Git but may be generated during Nix development:
+
+# Nix build outputs
+/result
+/result-*
+/nix-result
+
+# Nix store paths
+/nix/store
+
+# Direnv
+/.envrc
+/.direnv
+
+# Nix develop artifacts
+/.nix-shell
+
+# Cargo build artifacts in Nix environment
+/target/nix-*
+
+# NixOS test artifacts
+/nixos-test
+
+# Temporary Nix files
+/tmp-nix
+
+# Nix build logs
+*.nix-build-log
+
+# Flake lock backup
+flake.lock.backup
