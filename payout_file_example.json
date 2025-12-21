@@ -1,0 +1,130 @@
+{
+  "payouts": [
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 394120,
+      "DiffString": "394.12k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 126321,
+      "DiffString": "126.32k"
+    }
+  ],
+  "OnDeckList": [
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.bitaxe",
+      "Difficulty": 47010,
+      "DiffString": "47.01k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 41036,
+      "DiffString": "41.04k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.bitaxe",
+      "Difficulty": 28934,
+      "DiffString": "28.93k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.bitaxe",
+      "Difficulty": 22479,
+      "DiffString": "22.48k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 14403,
+      "DiffString": "14.40k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 13327,
+      "DiffString": "13.33k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.bitaxe",
+      "Difficulty": 11471,
+      "DiffString": "11.47k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 11205,
+      "DiffString": "11.21k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.bitaxe",
+      "Difficulty": 9580,
+      "DiffString": "9.58k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.bitaxe",
+      "Difficulty": 8528,
+      "DiffString": "8.53k"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 0,
+      "DiffString": "0"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 0,
+      "DiffString": "0"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.bitaxe",
+      "Difficulty": 0,
+      "DiffString": "0"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 0,
+      "DiffString": "0"
+    },
+    {
+      "Value": 19531250,
+      "Address": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y",
+      "Username": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterOmen",
+      "Difficulty": 0,
+      "DiffString": "0"
+    }
+  ],
+  "BestShare": {
+    "Difficulty": 8168909776,
+    "MinerAddress": "bc1qrwsx8fs0l6z7ugp5cvzy6lhss7jlyru3kg9s8y.maraHeaterStart9",
+    "Timestamp": "2025-12-06T21:31:39.0550588Z"
+  }
+}

@@ -219,7 +219,6 @@ async fn main() -> Result<(), String> {
             store_for_notify,
             tracker_handle_cloned,
             &cloned_stratum_config,
-            None, // miner_pubkey: Option<CompressedPublicKey> (unused for now)
         )
         .await;
     });
@@ -243,7 +242,7 @@ async fn main() -> Result<(), String> {
         let mut stratum_server = StratumServerBuilder::default()
             .shutdown_rx(stratum_shutdown_rx)
             .connections_handle(connections_handle.clone())
-            .emissions_tx(shares_tx)  // Changed: emission_tx + Some() wrapper (matches lib sig)
+            .shares_tx(shares_tx)  
             .hostname(stratum_config.hostname)
             .port(stratum_config.port)
             .start_difficulty(stratum_config.start_difficulty)
