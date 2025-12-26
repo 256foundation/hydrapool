@@ -417,9 +417,9 @@
           "exemplar": false,
           "expr": "coinbase_output",
           "format": "time_series",
-          "instant": false,
+          "instant": true,
           "legendFormat": "{{address}}",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
