@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-12-24
+
+### Changed
+
+- Upgrade cargo dist to using macos-14 on github actions when building
+  release binaries
+
+
 ## [2.0.0] - 2025-12-24
 
 ### Added
