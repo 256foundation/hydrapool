@@ -105,6 +105,16 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+**Note:** When upgrading from v1.x.x to **v2.x.x or higher**, the database
+schema has changed and requires a reset. Run the following once:
+
+```bash
+cd <directory where your docker-compose.yml file is>
+docker compose pull
+docker compose down -v
+docker compose up -d
+```
+
 # Dashboards
 
 ## Pool Dashboard
