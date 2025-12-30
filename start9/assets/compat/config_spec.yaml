@@ -1,0 +1,92 @@
+name: hydrapool-config
+version: 1.0.0
+description: Configuration specification for Hydra-Pool
+
+properties:
+  bitcoin-network:
+    type: string
+    title: Bitcoin Network
+    description: The Bitcoin network to mine on
+    default: signet
+    enum: [main, testnet4, signet]
+    required: true
+
+  bootstrap-address:
+    type: string
+    title: Bootstrap Address
+    description: Bitcoin address to receive early block payouts
+    pattern: "^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[ac-hj-np-z02-9]{8,87}$"
+    required: true
+
+  pool-fee:
+    type: integer
+    title: Pool Fee (basis points)
+    description: Pool operator fee (100 = 1%)
+    default: 0
+    minimum: 0
+    maximum: 1000
+
+  donation-fee:
+    type: integer
+    title: Developer Donation (basis points)
+    description: Donation to developers (100 = 1%)
+    default: 50
+    minimum: 0
+    maximum: 500
+
+  difficulty-multiplier:
+    type: number
+    title: Difficulty Multiplier
+    description: PPLNS window difficulty multiplier
+    default: 1.0
+    minimum: 0.1
+    maximum: 10.0
+
+  pplns-ttl-days:
+    type: integer
+    title: PPLNS TTL Days
+    description: Time-to-live for PPLNS share window - how long shares remain valid for payment calculation
+    default: 7
+    minimum: 1
+    maximum: 30
+
+  pool-signature:
+    type: string
+    title: Pool Signature
+    description: Pool signature for block identification
+    default: hydrapool
+    maxLength: 16
+
+  log-level:
+    type: string
+    title: Log Level
+    description: Application log level
+    default: info
+    enum: [error, warn, info, debug, trace]
+
+  bitcoin-rpc-url:
+    type: string
+    title: Bitcoin RPC URL
+    description: Bitcoin node RPC endpoint
+    default: http://bitcoind.embassy:8332
+    required: true
+
+  bitcoin-rpc-user:
+    type: string
+    title: Bitcoin RPC Username
+    description: Bitcoin node RPC username
+    required: true
+
+  bitcoin-rpc-password:
+    type: string
+    title: Bitcoin RPC Password
+    description: Bitcoin node RPC password
+    required: true
+    secret: true
+
+  bitcoin-zmq-url:
+    type: string
+    title: Bitcoin ZMQ URL
+    description: Bitcoin node ZMQ block endpoint
+    default: tcp://bitcoind.embassy:28334
+    required: true

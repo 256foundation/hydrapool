@@ -1,0 +1,226 @@
+id: hydrapool
+title: Hydra-Pool
+version: 1.1.18
+license: AGPL-3.0
+wrapper-repo: https://github.com/256-Foundation/Hydra-Pool
+build: ["make", "build"]
+description:
+  short: Open source Bitcoin mining pool with PPLNS accounting
+  long: |
+    Hydra-Pool is an open source Bitcoin mining pool with support for solo mining and PPLNS (Pay Per Last N Shares) accounting. Features include private solo pools, direct coinbase payouts (no custody), share accounting API, and comprehensive monitoring dashboards.
+
+assets:
+  icon.png: icon.png
+  instructions.md: instructions.md
+
+main:
+  type: docker
+  image: hydrapool-start9
+  entrypoint: ["/usr/local/bin/docker_entrypoint.sh"]
+  args: ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+  mounts:
+    - type: data
+      name: hydrapool-data
+      path: /var/lib/hydrapool
+    - type: data
+      name: prometheus-data
+      path: /var/lib/prometheus
+    - type: data
+      name: grafana-data
+      path: /var/lib/grafana
+    - type: data
+      name: hydrapool-logs
+      path: /var/log/hydrapool
+
+interfaces:
+  main:
+    name: Mining Pool Interface
+    description: Main interface for Hydra-Pool services
+    tor:
+    - port: 3333
+      name: Stratum Mining
+      description: Stratum mining protocol port
+    - port: 46884
+      name: API Server
+      description: REST API for pool management and monitoring
+    lan:
+    - port: 3333
+      name: Stratum Mining
+      description: Stratum mining protocol port
+    - port: 46884
+      name: API Server
+      description: REST API for pool management and monitoring
+    - port: 9090
+      name: Prometheus
+      description: Prometheus metrics endpoint
+    - port: 3000
+      name: Grafana Dashboard
+      description: Grafana monitoring dashboard
+
+health-checks:
+  api:
+    name: API Server
+    success-message: API server is responding
+    failure-message: API server is not responding
+    type: docker
+    image: main
+    entrypoint: health_check.sh
+    args: ["api"]
+    inject: true
+    io-format: json
+  
+  prometheus:
+    name: Prometheus Metrics
+    success-message: Prometheus is collecting metrics
+    failure-message: Prometheus is not responding
+    type: docker
+    image: main
+    entrypoint: health_check.sh
+    args: ["prometheus"]
+    inject: true
+    io-format: json
+  
+  grafana:
+    name: Grafana Dashboard
+    success-message: Grafana dashboard is accessible
+    failure-message: Grafana dashboard is not responding
+    type: docker
+    image: main
+    entrypoint: health_check.sh
+    args: ["grafana"]
+    inject: true
+    io-format: json
+  
+  stratum:
+    name: Stratum Mining Port
+    success-message: Stratum port is open
+    failure-message: Stratum port is not accessible
+    type: docker
+    image: main
+    entrypoint: health_check.sh
+    args: ["stratum"]
+    inject: true
+    io-format: json
+
+config:
+  get:
+    type: script
+  set:
+    type: script
+
+properties:
+  bitcoin-network:
+    type: string
+    title: Bitcoin Network
+    description: Choose the Bitcoin network to mine on
+    default: signet
+    enum:
+      - value: main
+        title: Mainnet
+      - value: testnet4
+        title: Testnet4
+      - value: signet
+        title: Signet
+  
+  bootstrap-address:
+    type: string
+    title: Bootstrap Address
+    description: Bitcoin address to receive payouts for blocks found in first 10 seconds
+    pattern: "^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[ac-hj-np-z02-9]{8,87}$"
+    required: true
+  
+  pool-fee:
+    type: integer
+    title: Pool Fee (basis points)
+    description: Pool operator fee (100 = 1%)
+    default: 0
+    min: 0
+    max: 1000
+  
+  donation-fee:
+    type: integer
+    title: Developer Donation (basis points)
+    description: Donation to Hydra-Pool developers (100 = 1%)
+    default: 50
+    min: 0
+    max: 500
+  
+  difficulty-multiplier:
+    type: float
+    title: Difficulty Multiplier
+    description: Multiplier for PPLNS window calculation
+    default: 1.0
+    min: 0.1
+    max: 10.0
+  
+  pplns-ttl-days:
+    type: integer
+    title: PPLNS TTL Days
+    description: Time-to-live for PPLNS share window - how long shares remain valid for payment calculation
+    default: 7
+    min: 1
+    max: 30
+  
+  pool-signature:
+    type: string
+    title: Pool Signature
+    description: Pool signature for block identification (max 16 bytes)
+    default: hydrapool
+    pattern: "^.{0,16}$"
+  
+  log-level:
+    type: string
+    title: Log Level
+    description: Logging verbosity level
+    default: info
+    enum:
+      - value: error
+        title: Error
+      - value: warn
+        title: Warning
+      - value: info
+        title: Info
+      - value: debug
+        title: Debug
+      - value: trace
+        title: Trace
+
+dependencies:
+  bitcoind:
+    version: ">=0.21.1.2 <32.0.0"
+    requirement:
+      type: required
+    description: Bitcoin node for RPC and ZMQ connections
+    config:
+      check:
+        type: script
+      auto-configure:
+        type: script
+
+volumes:
+  hydrapool-data:
+    type: data
+    description: Hydra-Pool database and state
+  prometheus-data:
+    type: data
+    description: Prometheus metrics storage
+  grafana-data:
+    type: data
+    description: Grafana dashboards and configuration
+  hydrapool-logs:
+    type: data
+    description: Application logs
+
+backup:
+  create:
+    type: script
+  restore:
+    type: script
+
+migrations:
+  from:
+    "*":
+      type: script
+  to:
+    "*":
+      type: script
