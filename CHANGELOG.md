@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-01-12
+
+### Fixed
+
+- Handle authorize failure using two strike policy is used in ckpool
+- Bump p2poolv2 libs to v0.4.3
+
 ## [2.1.2] - 2026-01-12
 
 ### Fixed
@@ -19,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fix share count in grafana dashboard. We now show accepted shares
   and rejected shares.
-- Bump p2pool lib to v0.4.2
+- Bump p2poolv2 libs to v0.4.2
 
 ## [2.1.0] - 2026-01-12
 
@@ -27,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Detect duplicate shares submitted by clients and reject them
 - Add support for load testing by ignoring difficulty in test configs
-- Bump p2pool lib to v0.4.1
+- Bump p2poolv2 libs to v0.4.1
 
 ## [2.0.1] - 2025-12-24
 
