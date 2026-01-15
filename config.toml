@@ -1,7 +1,7 @@
 [store]
 path = "./store.db"
 background_task_frequency_hours = 24
-pplns_ttl_days = 7
+pplns_ttl_days = 1
 
 [stratum]
 hostname = "0.0.0.0"

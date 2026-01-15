@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.1.5] - 2026-01-16
+## [2.1.6] - 2026-01-15
+
+### Fixed
+
+- Increase notify channel capacity to handle concurrent clients
+- Skip PPLNS computations when in 100% donation mode
+- Bump p2poolv2 libs to v0.4.6
+
+## [2.1.5] - 2026-01-15
 
 ### Fixed
 

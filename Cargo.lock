@@ -487,7 +487,7 @@ dependencies = [
 [[package]]
 name = "bitcoindrpc"
 version = "0.1.0"
-source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.5#383696e9a2a2bf85f3e9a511033f3fde47db60d6"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.6#05518682cf12d0626511e529c986b7f2f3a928a1"
 dependencies = [
  "base64 0.22.1",
  "bitcoin",
@@ -1674,7 +1674,7 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "hydrapool"
-version = "2.1.5"
+version = "2.1.6"
 dependencies = [
  "bitcoin",
  "bitcoindrpc",
@@ -3000,7 +3000,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "p2poolv2_api"
 version = "0.1.0"
-source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.5#383696e9a2a2bf85f3e9a511033f3fde47db60d6"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.6#05518682cf12d0626511e529c986b7f2f3a928a1"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -3020,7 +3020,7 @@ dependencies = [
 [[package]]
 name = "p2poolv2_cli"
 version = "0.1.0"
-source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.5#383696e9a2a2bf85f3e9a511033f3fde47db60d6"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.6#05518682cf12d0626511e529c986b7f2f3a928a1"
 dependencies = [
  "base64 0.22.1",
  "clap",
@@ -3040,7 +3040,7 @@ dependencies = [
 [[package]]
 name = "p2poolv2_lib"
 version = "0.1.0"
-source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.5#383696e9a2a2bf85f3e9a511033f3fde47db60d6"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=hydrapool.v0.4.6#05518682cf12d0626511e529c986b7f2f3a928a1"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
