@@ -7,13 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.9] - 2026-01-18
+
+### Fixed
+
+- Support graceful terimation
+- The above helps to remove spikes from grafana dashboard on system restart
+- Bump p2poolv2 libs to v0.4.9
+
 ## [2.1.8] - 2026-01-16
 
 ### Fixed
 
 - Performance optimisations
 - Bump p2poolv2 libs to v0.4.8
-
 
 ## [2.1.7] - 2026-01-16
 

@@ -33,6 +33,7 @@ use p2poolv2_lib::stratum::zmq_listener::{ZmqListener, ZmqListenerTrait};
 use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::oneshot;
 use tracing::error;
 use tracing::info;
 
@@ -49,6 +50,40 @@ const FULL_DONATION_BIPS: u16 = 10_000;
 /// clients. If we have more than notify channel capacity of pending
 /// clients in queue, some will be dropped.
 const NOTIFY_CHANNEL_CAPACITY: usize = 1000;
+
+/// Wait for shutdown signals (Ctrl+C, SIGTERM on Unix) or internal shutdown signal.
+/// Returns when any shutdown signal is received.
+#[cfg(unix)]
+async fn wait_for_shutdown_signal(stopping_rx: oneshot::Receiver<()>) {
+    let mut sigterm = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        .expect("Failed to set up SIGTERM handler");
+
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received Ctrl+C, initiating graceful shutdown...");
+        }
+        _ = sigterm.recv() => {
+            info!("Received SIGTERM, initiating graceful shutdown...");
+        }
+        _ = stopping_rx => {
+            info!("Node stopping due to internal signal...");
+        }
+    }
+}
+
+/// Wait for shutdown signals (Ctrl+C) or internal shutdown signal.
+/// Returns when any shutdown signal is received.
+#[cfg(not(unix))]
+async fn wait_for_shutdown_signal(stopping_rx: oneshot::Receiver<()>) {
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received Ctrl+C, initiating graceful shutdown...");
+        }
+        _ = stopping_rx => {
+            info!("Node stopping due to internal signal...");
+        }
+    }
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -168,6 +203,8 @@ async fn main() -> Result<(), String> {
         }
     };
     let metrics_cloned = metrics_handle.clone();
+    let metrics_for_shutdown = metrics_handle.clone();
+    let stats_dir_for_shutdown = config.logging.stats_dir.clone();
     let store_for_stratum = chain_store.clone();
     let tracker_handle_cloned = tracker_handle.clone();
 
@@ -229,19 +266,38 @@ async fn main() -> Result<(), String> {
     );
 
     match NodeHandle::new(config, chain_store, emissions_rx, metrics_handle).await {
-        Ok((_node_handle, stopping_rx)) => {
-            info!("Pool started");
-            if (stopping_rx.await).is_ok() {
-                info!("Pool shutting down ...");
+        Ok((node_handle, stopping_rx)) => {
+            info!("Node started");
 
-                stratum_shutdown_tx
-                    .send(())
-                    .expect("Failed to send shutdown signal to Stratum server");
+            wait_for_shutdown_signal(stopping_rx).await;
 
-                let _ = api_shutdown_tx.send(());
+            info!("Node shutting down ...");
 
-                info!("Pool stopped");
+            // Shutdown node first to stop accepting new work
+            if let Err(e) = node_handle.shutdown().await {
+                error!("Error during node shutdown: {e}");
             }
+
+            // Save metrics before shutdown to prevent data loss
+            let metrics = metrics_for_shutdown.get_metrics().await;
+            if let Err(e) = p2poolv2_lib::accounting::stats::pool_local_stats::save_pool_local_stats(
+                &metrics,
+                &stats_dir_for_shutdown,
+            ) {
+                error!("Failed to save metrics on shutdown: {e}");
+            } else {
+                info!("Metrics saved on shutdown");
+            }
+
+            stratum_shutdown_tx
+                .send(())
+                .expect("Failed to send shutdown signal to Stratum server");
+
+            api_shutdown_tx
+                .send(())
+                .expect("Failed to send shutdown signal to API server");
+
+            info!("Node stopped");
         }
         Err(e) => {
             error!("Failed to start node: {e}");
