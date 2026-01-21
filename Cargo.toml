@@ -31,10 +31,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bitcoin = { version = "0.32.5", features = ["serde", "rand"] }
 tokio = { version = "1.0", features = ["full"] }
-p2poolv2_lib = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_lib", tag = "hydrapool.v0.5.0" }
-p2poolv2_cli = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_cli", tag = "hydrapool.v0.5.0" }
-p2poolv2_api = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_api", tag = "hydrapool.v0.5.0" }
-bitcoindrpc = { git = "https://github.com/p2poolv2/p2poolv2", package = "bitcoindrpc", tag = "hydrapool.v0.5.0" }
+p2poolv2_lib = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_lib", rev = "998da98" }
+p2poolv2_cli = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_cli", rev = "998da98" }
+p2poolv2_api = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_api", rev = "998da98" }
+bitcoindrpc = { git = "https://github.com/p2poolv2/p2poolv2", package = "bitcoindrpc", rev = "998da98" }
 
 [[bin]]
 name = "hydrapool"
