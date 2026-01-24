@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.3.0] - 2026-01-20
+## [2.4.0] - 2026-01-24
+
+### Changed
+
+- Yanked release 2.3.0
+- Bump p2poolv2 to v0.7.0
+
+## [2.3.0] - 2026-01-20 - YANKED
 
 ### Changed
 
