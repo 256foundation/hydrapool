@@ -1,0 +1,85 @@
+name: hydrapool-rules
+version: 1.0.0
+description: Configuration validation rules for Hydra-Pool
+
+rules:
+  bitcoin-network:
+    type: enum
+    values: [main, testnet4, signet]
+    message: "Must be one of: main, testnet4, signet"
+
+  bootstrap-address:
+    type: regex
+    pattern: "^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[ac-hj-np-z02-9]{8,87}$"
+    message: "Must be a valid Bitcoin address"
+
+  pool-fee:
+    type: range
+    min: 0
+    max: 1000
+    message: "Pool fee must be between 0 and 1000 basis points (0-10%)"
+
+  donation-fee:
+    type: range
+    min: 0
+    max: 500
+    message: "Donation fee must be between 0 and 500 basis points (0-5%)"
+
+  difficulty-multiplier:
+    type: range
+    min: 0.1
+    max: 10.0
+    message: "Difficulty multiplier must be between 0.1 and 10.0"
+
+  pool-signature:
+    type: maxLength
+    length: 16
+    message: "Pool signature must be 16 characters or less"
+
+  log-level:
+    type: enum
+    values: [error, warn, info, debug, trace]
+    message: "Must be one of: error, warn, info, debug, trace"
+
+  bitcoin-rpc-url:
+    type: url
+    schemes: [http, https]
+    message: "Must be a valid HTTP/HTTPS URL"
+
+  bitcoin-rpc-user:
+    type: required
+    message: "Bitcoin RPC username is required"
+
+  bitcoin-rpc-password:
+    type: required
+    message: "Bitcoin RPC password is required"
+
+  bitcoin-zmq-url:
+    type: regex
+    pattern: "^tcp://[a-zA-Z0-9.-]+:[0-9]+$"
+    message: "Must be a valid TCP URL (e.g., tcp://host:port)"
+
+dependencies:
+  - if:
+      property: bitcoin-network
+      value: main
+    then:
+      - property: bootstrap-address
+        type: valid-mainnet-address
+        message: "Bootstrap address must be a valid mainnet address"
+  
+  - if:
+      property: bitcoin-network
+      value: testnet4
+    then:
+      - property: bootstrap-address
+        type: valid-testnet-address
+        message: "Bootstrap address must be a valid testnet address"
+  
+  - if:
+      property: bitcoin-network
+      value: signet
+    then:
+      - property: bootstrap-address
+        type: valid-signet-address
+        message: "Bootstrap address must be a valid signet address"
