@@ -35,6 +35,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
 use tracing::error;
+use tracing::debug;
 use tracing::info;
 use std::fs::File;
 use std::io::Write;
@@ -153,7 +154,7 @@ async fn main() -> Result<(), String> {
         if let Some(ref file_path) = payout_file_path {
             let file_clone = file_path.clone();
             let url_clone = url.clone();
-            let interval = std::time::Duration::from_secs(config.stratum.payout_refresh_interval);
+            let interval = Duration::from_secs(config.stratum.payout_refresh_interval);
             let network = stratum_config.network;  // For addr validation if needed
 
             tokio::spawn(async move {
@@ -219,6 +220,7 @@ async fn main() -> Result<(), String> {
             store_for_notify,
             tracker_handle_cloned,
             &cloned_stratum_config,
+            None,
         )
         .await;
     });
@@ -242,7 +244,6 @@ async fn main() -> Result<(), String> {
         let mut stratum_server = StratumServerBuilder::default()
             .shutdown_rx(stratum_shutdown_rx)
             .connections_handle(connections_handle.clone())
-            .shares_tx(shares_tx)  
             .hostname(stratum_config.hostname)
             .port(stratum_config.port)
             .start_difficulty(stratum_config.start_difficulty)
@@ -338,12 +339,12 @@ async fn main() -> Result<(), String> {
 }
 
 async fn fetch_and_write_payouts(
-    url: &str,
+    url: &reqwest::Url,           // ← change to &Url
     file_path: &str,
-    _network: bitcoin::Network,  // Optional: Validate addrs match network
+    _network: bitcoin::Network,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
-    let resp = client.get(url).send().await?;
+    let resp = client.get(url.clone()).send().await?;  // ← works directly with &Url
     if !resp.status().is_success() {
         return Err(format!("HTTP {} from {}", resp.status(), url).into());
     }
