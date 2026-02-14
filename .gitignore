@@ -4,3 +4,8 @@ p2pool.log
 .env
 docker/.env
 logs/*
+
+# Start9 build artifacts
+start9/*.s9pk
+start9/docker-images/
+start9/scripts/embassy.js

@@ -1,0 +1,101 @@
+bitcoin-network:
+  type: enum
+  name: Bitcoin Network
+  description: The Bitcoin network to mine on.
+  default: main
+  values:
+    - main
+    - testnet4
+    - signet
+
+bootstrap-address:
+  type: string
+  name: Bootstrap Address
+  description: |
+    Bitcoin address used for initial block templates before any miners
+    have submitted shares. The default is the 256 Foundation donation
+    address. Change this to your own address.
+  nullable: false
+  default: "bc1qypskemx80lznv4tjpnmpw9c5pgpy32fpkk3sw2"
+  pattern: "^(bc1|[13]|tb1|bcrt1)[a-zA-HJ-NP-Z0-9]{25,62}$"
+  pattern-description: Must be a valid Bitcoin address (mainnet, testnet, or signet).
+
+pool-fee:
+  type: number
+  name: Pool Fee
+  description: |
+    Fee charged by the pool operator, in basis points (100 = 1%).
+    Set to 0 for no fee. Maximum 10% (1000 bips).
+  nullable: false
+  integral: true
+  range: "[0,1000]"
+  default: 0
+  units: basis points
+
+pool-fee-address:
+  type: string
+  name: Pool Fee Address
+  description: |
+    Bitcoin address to receive pool fees. Required if pool fee is
+    greater than 0.
+  nullable: true
+  default: ~
+  pattern: "^(bc1|[13]|tb1|bcrt1)[a-zA-HJ-NP-Z0-9]{25,62}$"
+  pattern-description: Must be a valid Bitcoin address.
+
+donation:
+  type: number
+  name: Developer Donation
+  description: |
+    Optional donation to Hydra-Pool developers, in basis points
+    (100 = 1%). Default is 0.5%. Set to 0 to disable.
+  nullable: false
+  integral: true
+  range: "[0,10000]"
+  default: 50
+  units: basis points
+
+difficulty-multiplier:
+  type: number
+  name: Difficulty Multiplier
+  description: |
+    Defines the PPLNS window size for calculating payout proportions.
+    Higher values mean a larger window. See the project wiki for
+    guidance on choosing this value.
+  nullable: false
+  integral: false
+  range: "[0.1,10.0]"
+  default: 1.0
+
+pplns-ttl-days:
+  type: number
+  name: PPLNS Share TTL
+  description: |
+    Number of days shares remain valid in the PPLNS window before
+    they expire.
+  nullable: false
+  integral: true
+  range: "[1,30]"
+  default: 7
+  units: days
+
+pool-signature:
+  type: string
+  name: Pool Signature
+  description: |
+    Optional signature included in mined blocks to identify your pool.
+    Maximum 16 characters. Leave empty for anonymous mining.
+  nullable: true
+  default: "hydrapool"
+  maxlength: 16
+
+log-level:
+  type: enum
+  name: Log Level
+  description: Logging verbosity level for the Hydra-Pool service.
+  default: info
+  values:
+    - error
+    - warn
+    - info
+    - debug

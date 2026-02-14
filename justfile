@@ -17,3 +17,8 @@ run config="config.toml":
 
 check:
 	cargo check
+
+# Build the Start9 .s9pk package
+start9:
+	@echo "Building Start9 package..."
+	cd start9 && make
