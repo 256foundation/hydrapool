@@ -32,21 +32,27 @@ difficulty_multiplier = 1.0
 # how large your pool is, if you are running private, there is no need
 # to add a pool signature. Maximum length 16 bytes.
 pool_signature = "hydrapool"
-#payout_file_path = "./payout_file_example.json"  # Triggers file mode
-#downstream_payout_url = "https://your-pool-server.com/api/payouts"  # Optional: Enables fetcher
-#payout_refresh_interval = 30
+payout_file_path = "./payout_file_example.json"  # Triggers file mode
+downstream_payout_url = "https://boot.gridlabs.science/api/mining/payouts"  # Optional: Enables fetcher
+payout_refresh_interval = 30
+# Optional high-difficulty share relay (separate from payout URL)
+high_diff_share_submit_url = "https://boot.gridlabs.science/api/mining/share"
+# Target average cadence for share submissions (adaptive difficulty threshold)
+high_diff_share_submit_interval_secs = 10
+# How often to recompute adaptive submission threshold
+high_diff_share_adjust_interval_secs = 30
 
 [bitcoinrpc]
 # RPC credentials are loaded from env vars
-url = "http://127.0.0.1:38332"
-username = "p2pool"
-password = "p2pool"
+url = "http://127.0.0.1:8332"
+username = "bitcoin"
+password = "47mvwsxosyep744le24i"
 
 [logging]
 # Specify a file path for the log file, if no log file is specified, console logging will be used
 # file = "./logs/p2pool.log"
 # Set a log level. The supported levels are debug, info, warn and error.
-level = "info"
+level = "debug"
 # Pool, user and worker stats are backed up for aggregates across pool restarts in this directory.
 stats_dir = "./logs/stats"
 
