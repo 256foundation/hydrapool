@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License along with
 // Hydra-Pool. If not, see <https://www.gnu.org/licenses/>.
 
+use bitcoin::consensus::encode::serialize_hex;
+use bitcoin::hashes::Hash;
 use clap::Parser;
 use p2poolv2_api::start_api_server;
 use p2poolv2_lib::accounting::stats::metrics;
@@ -26,14 +28,21 @@ use p2poolv2_lib::store::Store;
 use p2poolv2_lib::stratum::client_connections::start_connections_handler;
 use p2poolv2_lib::stratum::emission::Emission;
 use p2poolv2_lib::stratum::server::StratumServerBuilder;
+use p2poolv2_lib::stratum::work::gbt::build_merkle_branches_for_template;
 use p2poolv2_lib::stratum::work::gbt::start_gbt;
 use p2poolv2_lib::stratum::work::notify::start_notify;
 use p2poolv2_lib::stratum::work::tracker::start_tracker_actor;
 use p2poolv2_lib::stratum::zmq_listener::{ZmqListener, ZmqListenerTrait};
+use reqwest::Url;
+use serde::Serialize;
+use serde_json::json; // For building JSON if needed
+use std::fs::File;
+use std::io::Write;
 use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
 
@@ -50,6 +59,50 @@ const FULL_DONATION_BIPS: u16 = 10_000;
 /// clients. If we have more than notify channel capacity of pending
 /// clients in queue, some will be dropped.
 const NOTIFY_CHANNEL_CAPACITY: usize = 1000;
+/// Maximum number of pending shares queued for downstream high-difficulty API
+const HIGH_DIFF_SHARES_BUFFER_SIZE: usize = 1000;
+
+fn default_high_diff_submit_interval_secs() -> u64 {
+    10
+}
+
+fn default_high_diff_adjust_interval_secs() -> u64 {
+    30
+}
+
+fn default_high_diff_submit_queue_size() -> usize {
+    1000
+}
+
+#[derive(Debug, Default)]
+struct HydrapoolStratumLocalConfig {
+    high_diff_share_submit_url: Option<Url>,
+    high_diff_share_submit_interval_secs: u64,
+    high_diff_share_adjust_interval_secs: u64,
+    high_diff_share_submit_queue_size: usize,
+}
+
+impl HydrapoolStratumLocalConfig {
+    fn with_defaults() -> Self {
+        Self {
+            high_diff_share_submit_url: None,
+            high_diff_share_submit_interval_secs: default_high_diff_submit_interval_secs(),
+            high_diff_share_adjust_interval_secs: default_high_diff_adjust_interval_secs(),
+            high_diff_share_submit_queue_size: default_high_diff_submit_queue_size(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "PascalCase")]
+struct BootShareSubmission {
+    miner_address: String,
+    header_hex: String,
+    coinbase_hex: String,
+    merkle_path: Vec<String>,
+    nonce: i64,
+    difficulty: f64,
+}
 
 /// Wait for shutdown signals (Ctrl+C, SIGTERM on Unix) or internal shutdown signal.
 /// Returns when any shutdown signal is received.
@@ -106,6 +159,7 @@ async fn main() -> Result<(), String> {
         return Err(format!("Failed to load config: {err}"));
     }
     let config = config.unwrap();
+    let local_config = load_local_config(&args.config)?;
     // Configure logging based on config
     let logging_result = setup_logging(&config.logging);
     // hold guard to ensure logging is set up correctly
@@ -139,7 +193,42 @@ async fn main() -> Result<(), String> {
         Duration::from_secs(config.store.pplns_ttl_days * 3600 * 24),
     );
 
-    let stratum_config = config.stratum.clone().parse().unwrap();
+    let mut stratum_config = config.stratum.clone().parse().unwrap();
+    let mut payout_file_path = stratum_config.payout_file_path.clone(); // Optional
+
+    // If URL set, spawn fetcher to update file
+    if let Some(ref url) = stratum_config.downstream_payout_url {
+        // Assume you add this field too (see below)
+        if payout_file_path.is_none() {
+            payout_file_path = Some("/tmp/hydrapool_payouts.json".to_string()); // Default file
+        }
+        if let Some(ref file_path) = payout_file_path {
+            let file_clone = file_path.clone();
+            let url_clone = url.clone();
+            let interval = Duration::from_secs(config.stratum.payout_refresh_interval);
+            let network = stratum_config.network; // For addr validation if needed
+            info!(
+                "Starting downstream payout fetcher: url={} file={} interval={}s",
+                url_clone,
+                file_clone,
+                interval.as_secs()
+            );
+
+            tokio::spawn(async move {
+                loop {
+                    if let Err(e) = fetch_and_write_payouts(&url_clone, &file_clone, network).await
+                    {
+                        debug!("API fetch/write failed: {}", e);
+                    }
+                    tokio::time::sleep(interval).await;
+                }
+            });
+        }
+    }
+
+    // Set the parsed config's file path
+    stratum_config.payout_file_path = payout_file_path;
+
     let bitcoinrpc_config = config.bitcoinrpc.clone();
 
     let (stratum_shutdown_tx, stratum_shutdown_rx) = tokio::sync::oneshot::channel();
@@ -193,8 +282,44 @@ async fn main() -> Result<(), String> {
         .await;
     });
 
-    let (emissions_tx, emissions_rx) =
+    let (stratum_emissions_tx, stratum_emissions_rx) =
         tokio::sync::mpsc::channel::<Emission>(STRATUM_SHARES_BUFFER_SIZE);
+    let (node_emissions_tx, node_emissions_rx) =
+        tokio::sync::mpsc::channel::<Emission>(STRATUM_SHARES_BUFFER_SIZE);
+
+    let boot_submit_url = local_config.high_diff_share_submit_url.clone();
+    let high_diff_submit_interval_secs = local_config.high_diff_share_submit_interval_secs.max(1);
+    let high_diff_adjust_interval_secs = local_config.high_diff_share_adjust_interval_secs.max(1);
+    let high_diff_share_submit_queue_size = local_config
+        .high_diff_share_submit_queue_size
+        .max(1)
+        .min(HIGH_DIFF_SHARES_BUFFER_SIZE);
+
+    if let Some(url) = boot_submit_url {
+        info!(
+            "High-difficulty share submit enabled: url={} target_interval={}s adjust_interval={}s",
+            url, high_diff_submit_interval_secs, high_diff_adjust_interval_secs
+        );
+        let (boot_submit_tx, boot_submit_rx) =
+            tokio::sync::mpsc::channel::<BootShareSubmission>(high_diff_share_submit_queue_size);
+        tokio::spawn(start_boot_share_submitter(url, boot_submit_rx));
+        tokio::spawn(forward_emissions_with_adaptive_threshold(
+            stratum_emissions_rx,
+            node_emissions_tx,
+            Some(boot_submit_tx),
+            high_diff_submit_interval_secs,
+            high_diff_adjust_interval_secs,
+        ));
+    } else {
+        info!("High-difficulty share submit disabled");
+        tokio::spawn(forward_emissions_with_adaptive_threshold(
+            stratum_emissions_rx,
+            node_emissions_tx,
+            None,
+            high_diff_submit_interval_secs,
+            high_diff_adjust_interval_secs,
+        ));
+    }
 
     let metrics_handle = match metrics::start_metrics(config.logging.stats_dir.clone()).await {
         Ok(handle) => handle,
@@ -212,7 +337,7 @@ async fn main() -> Result<(), String> {
         let mut stratum_server = StratumServerBuilder::default()
             .shutdown_rx(stratum_shutdown_rx)
             .connections_handle(connections_handle.clone())
-            .emissions_tx(emissions_tx)
+            .emissions_tx(stratum_emissions_tx)
             .hostname(stratum_config.hostname)
             .port(stratum_config.port)
             .start_difficulty(stratum_config.start_difficulty)
@@ -265,7 +390,7 @@ async fn main() -> Result<(), String> {
         config.api.hostname, config.api.port
     );
 
-    match NodeHandle::new(config, chain_store, emissions_rx, metrics_handle).await {
+    match NodeHandle::new(config, chain_store, node_emissions_rx, metrics_handle).await {
         Ok((node_handle, stopping_rx)) => {
             info!("Node started");
 
@@ -304,5 +429,290 @@ async fn main() -> Result<(), String> {
             return Err(format!("Failed to start node: {e}"));
         }
     }
+    Ok(())
+}
+
+fn load_local_config(path: &str) -> Result<HydrapoolStratumLocalConfig, String> {
+    let settings = config::Config::builder()
+        .add_source(config::File::with_name(path))
+        .build()
+        .map_err(|e| format!("Failed to load local hydrapool config from {path}: {e}"))?;
+
+    let mut local = HydrapoolStratumLocalConfig::with_defaults();
+
+    local.high_diff_share_submit_url = settings
+        .get_string("stratum.high_diff_share_submit_url")
+        .ok()
+        .and_then(|url| Url::parse(&url).ok());
+
+    if let Ok(value) = settings.get_int("stratum.high_diff_share_submit_interval_secs") {
+        local.high_diff_share_submit_interval_secs = value.max(1) as u64;
+    }
+    if let Ok(value) = settings.get_int("stratum.high_diff_share_adjust_interval_secs") {
+        local.high_diff_share_adjust_interval_secs = value.max(1) as u64;
+    }
+    if let Ok(value) = settings.get_int("stratum.high_diff_share_submit_queue_size") {
+        local.high_diff_share_submit_queue_size = value.max(1) as usize;
+    }
+
+    Ok(local)
+}
+
+async fn forward_emissions_with_adaptive_threshold(
+    mut stratum_emissions_rx: tokio::sync::mpsc::Receiver<Emission>,
+    node_emissions_tx: tokio::sync::mpsc::Sender<Emission>,
+    boot_submit_tx: Option<tokio::sync::mpsc::Sender<BootShareSubmission>>,
+    target_submit_interval_secs: u64,
+    adjust_interval_secs: u64,
+) {
+    let target_submit_interval = Duration::from_secs(target_submit_interval_secs.max(1));
+    let adjust_interval = Duration::from_secs(adjust_interval_secs.max(1));
+
+    let mut current_threshold: u64 = 1;
+    let mut observed_difficulties: Vec<u64> = Vec::new();
+    let mut last_adjust_at = tokio::time::Instant::now();
+    let mut seen_count: u64 = 0;
+    let mut queued_count: u64 = 0;
+    let mut below_threshold_count: u64 = 0;
+    let mut dropped_count: u64 = 0;
+
+    while let Some(emission) = stratum_emissions_rx.recv().await {
+        seen_count = seen_count.saturating_add(1);
+        let truediff = get_true_difficulty(&emission.header.block_hash()) as u64;
+        observed_difficulties.push(truediff);
+
+        let elapsed = last_adjust_at.elapsed();
+        if elapsed >= adjust_interval {
+            let new_threshold = recompute_threshold(
+                &observed_difficulties,
+                elapsed,
+                target_submit_interval,
+                current_threshold,
+            );
+            if new_threshold != current_threshold {
+                debug!(
+                    "Adjusted high-diff share threshold from {} to {} using {} samples over {:.1}s",
+                    current_threshold,
+                    new_threshold,
+                    observed_difficulties.len(),
+                    elapsed.as_secs_f64()
+                );
+            }
+            if boot_submit_tx.is_some() {
+                info!(
+                    "High-diff relay window: seen={} queued={} below_threshold={} dropped={} threshold={} target={}s",
+                    seen_count,
+                    queued_count,
+                    below_threshold_count,
+                    dropped_count,
+                    current_threshold,
+                    target_submit_interval.as_secs()
+                );
+            }
+            current_threshold = new_threshold;
+            observed_difficulties.clear();
+            last_adjust_at = tokio::time::Instant::now();
+            seen_count = 0;
+            queued_count = 0;
+            below_threshold_count = 0;
+            dropped_count = 0;
+        }
+
+        if let Some(ref tx) = boot_submit_tx {
+            if truediff >= current_threshold {
+                if let Some(payload) = build_boot_submission(&emission, truediff) {
+                    let miner = payload.miner_address.clone();
+                    let difficulty = payload.difficulty;
+                    if tx.try_send(payload).is_err() {
+                        dropped_count = dropped_count.saturating_add(1);
+                        debug!("Dropped high-diff share submission because submit queue is full");
+                    } else {
+                        queued_count = queued_count.saturating_add(1);
+                        debug!(
+                            "Queued high-diff share for submit miner={} diff={} threshold={}",
+                            miner, difficulty, current_threshold
+                        );
+                    }
+                }
+            } else {
+                below_threshold_count = below_threshold_count.saturating_add(1);
+            }
+        }
+
+        if node_emissions_tx.send(emission).await.is_err() {
+            info!("Node emission channel closed. Stopping emission forwarder.");
+            break;
+        }
+    }
+}
+
+fn recompute_threshold(
+    observed_difficulties: &[u64],
+    elapsed: Duration,
+    target_submit_interval: Duration,
+    current_threshold: u64,
+) -> u64 {
+    if observed_difficulties.is_empty() {
+        return (current_threshold / 2).max(1);
+    }
+
+    let target_count =
+        ((elapsed.as_secs_f64() / target_submit_interval.as_secs_f64()).round() as usize).max(1);
+    let mut sorted = observed_difficulties.to_vec();
+    sorted.sort_unstable_by(|a, b| b.cmp(a));
+    let idx = target_count
+        .saturating_sub(1)
+        .min(sorted.len().saturating_sub(1));
+    sorted[idx].max(1)
+}
+
+/// Use bitcoin mainnet max attainable target to convert the hash into difficulty.
+/// This mirrors p2poolv2's truediffone-based share difficulty metric.
+fn get_true_difficulty(hash: &bitcoin::BlockHash) -> u128 {
+    let mut bytes = hash.as_byte_array().to_vec();
+    bytes.reverse();
+    let diff = u128::from_str_radix(&hex::encode(&bytes[..16]), 16).unwrap();
+    (0xFFFF_u128 << (208 - 128)) / diff
+}
+
+fn build_boot_submission(emission: &Emission, truediff: u64) -> Option<BootShareSubmission> {
+    let btcaddress = emission.pplns.btcaddress.clone().unwrap_or_default();
+    if btcaddress.is_empty() {
+        return None;
+    }
+    let workername = emission.pplns.workername.clone().unwrap_or_default();
+    let miner_address = if workername.is_empty() {
+        btcaddress
+    } else {
+        format!("{btcaddress}.{workername}")
+    };
+
+    let merkle_path = build_merkle_branches_for_template(&emission.blocktemplate)
+        .into_iter()
+        .map(|h| h.to_string())
+        .collect::<Vec<_>>();
+
+    Some(BootShareSubmission {
+        miner_address,
+        header_hex: serialize_hex(&emission.header),
+        coinbase_hex: serialize_hex(&emission.coinbase),
+        merkle_path,
+        nonce: emission.header.nonce as i64,
+        difficulty: truediff as f64,
+    })
+}
+
+async fn start_boot_share_submitter(
+    submit_url: Url,
+    mut boot_submit_rx: tokio::sync::mpsc::Receiver<BootShareSubmission>,
+) {
+    let client = reqwest::Client::new();
+    while let Some(payload) = boot_submit_rx.recv().await {
+        let mut attempt: u8 = 0;
+        loop {
+            attempt = attempt.saturating_add(1);
+            let response = client.post(submit_url.clone()).json(&payload).send().await;
+            match response {
+                Ok(resp) if resp.status().is_success() => {
+                    debug!(
+                        "Submitted high-diff share to {} miner={} diff={} status={}",
+                        submit_url,
+                        payload.miner_address,
+                        payload.difficulty,
+                        resp.status()
+                    );
+                    break;
+                }
+                Ok(resp) => {
+                    if attempt >= 3 {
+                        debug!(
+                            "Failed submitting high-diff share to {} status={} after {} attempts",
+                            submit_url,
+                            resp.status(),
+                            attempt
+                        );
+                        break;
+                    }
+                }
+                Err(e) => {
+                    if attempt >= 3 {
+                        debug!(
+                            "Failed submitting high-diff share to {} error={} after {} attempts",
+                            submit_url, e, attempt
+                        );
+                        break;
+                    }
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(250 * u64::from(attempt))).await;
+        }
+    }
+}
+
+async fn fetch_and_write_payouts(
+    url: &reqwest::Url, // ← change to &Url
+    file_path: &str,
+    _network: bitcoin::Network,
+) -> Result<(), Box<dyn std::error::Error>> {
+    debug!("Fetching payouts from {} ...", url);
+    let client = reqwest::Client::new();
+    let resp = client.get(url.clone()).send().await?; // ← works directly with &Url
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {} from {}", resp.status(), url).into());
+    }
+    let json: serde_json::Value = resp.json().await?;
+
+    // Accept multiple key variants from downstream APIs.
+    let raw_payouts = json["payouts"]
+        .as_array()
+        .or_else(|| json["Payouts"].as_array())
+        .or_else(|| json["WinnersList"].as_array())
+        .ok_or("Missing payouts/Payouts/WinnersList")?
+        .clone();
+
+    // Normalize payout objects so p2poolv2 file mode can parse them.
+    // p2poolv2 expects each payout to have "Address" and "Value" keys.
+    let mut payouts = Vec::with_capacity(raw_payouts.len());
+    for entry in raw_payouts {
+        let address = entry["Address"]
+            .as_str()
+            .or_else(|| entry["address"].as_str())
+            .or_else(|| entry["MinerAddress"].as_str())
+            .ok_or("Missing Address/address/MinerAddress in payout entry")?;
+        let value = entry["Value"]
+            .as_u64()
+            .or_else(|| entry["value"].as_u64())
+            .ok_or("Missing Value/value in payout entry")?;
+        payouts.push(json!({
+            "Address": address,
+            "Value": value
+        }));
+    }
+
+    let on_deck = if !json["OnDeckList"].is_null() {
+        json["OnDeckList"].clone()
+    } else {
+        serde_json::Value::Null
+    };
+    let best_share = if !json["BestShare"].is_null() {
+        json["BestShare"].clone()
+    } else {
+        serde_json::Value::Null
+    };
+    let updated_json = json!({
+        // p2poolv2 loader currently expects "payouts"
+        "payouts": payouts,
+        "OnDeckList": on_deck,
+        "BestShare": best_share
+    });
+
+    let mut file = File::create(file_path)?;
+    file.write_all(updated_json.to_string().as_bytes())?;
+    info!(
+        "Updated payout file from {} -> {} ({} payouts)",
+        url,
+        file_path,
+        updated_json["payouts"].as_array().map_or(0, |a| a.len())
+    );
     Ok(())
 }

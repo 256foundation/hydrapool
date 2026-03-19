@@ -31,10 +31,31 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bitcoin = { version = "0.32.5", features = ["serde", "rand"] }
 tokio = { version = "1.0", features = ["full"] }
-p2poolv2_lib = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_lib", tag = "v0.7.0" }
-p2poolv2_cli = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_cli", tag = "v0.7.0" }
-p2poolv2_api = { git = "https://github.com/p2poolv2/p2poolv2", package = "p2poolv2_api", tag = "v0.7.0" }
-bitcoindrpc = { git = "https://github.com/p2poolv2/p2poolv2", package = "bitcoindrpc", tag = "v0.7.0" }
+serde_json = "1.0"
+#p2poolv2_lib = { git = "https://github.com/keegreil/p2poolv2", package = "p2poolv2_lib", branch = "external-payouts"}
+#p2poolv2_cli = { git = "https://github.com/keegreil/p2poolv2", package = "p2poolv2_cli", branch = "external-payouts" }
+#p2poolv2_api = { git = "https://github.com/keegreil/p2poolv2", package = "p2poolv2_api", branch = "external-payouts" }
+#bitcoindrpc = { git = "https://github.com/keegreil/p2poolv2", package = "bitcoindrpc", branch = "external-payouts" }
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+hex = "0.4"
+config = "0.13.4"
+# --- Local Development Dependencies ---
+# Assuming 'p2poolv2' is a sibling directory to 'hydrapool'
+# The path is RELATIVE to the directory containing this Cargo.toml file.
+
+# For p2poolv2_lib (located at /parent_directory/p2poolv2/p2poolv2_lib)
+p2poolv2_lib = { path = "../p2poolv2/p2poolv2_lib" } 
+
+# For p2poolv2_cli
+p2poolv2_cli = { path = "../p2poolv2/p2poolv2_cli" }
+
+# For p2poolv2_api
+p2poolv2_api = { path = "../p2poolv2/p2poolv2_api" }
+
+# For bitcoindrpc
+# This is likely a standalone crate in the p2poolv2 repo, check the exact path
+bitcoindrpc = { path = "../p2poolv2/bitcoindrpc" }
 
 [[bin]]
 name = "hydrapool"
