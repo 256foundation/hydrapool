@@ -1,18 +1,18 @@
-// Copyright (C) 2024, 2025 Hydra-Pool Developers (see AUTHORS)
+// Copyright (C) 2024-2026 Hydrapool Developers (see AUTHORS)
 //
-// This file is part of Hydra-Pool.
+// This file is part of Hydrapool.
 //
-// Hydra-Pool is free software: you can redistribute it and/or modify it under
+// Hydrapool is free software: you can redistribute it and/or modify it under
 // the terms of the GNU General Public License as published by the Free
 // Software Foundation, either version 3 of the License, or (at your option)
 // any later version.
 //
-// Hydra-Pool is distributed in the hope that it will be useful, but WITHOUT ANY
+// Hydrapool is distributed in the hope that it will be useful, but WITHOUT ANY
 // WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
 // FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along with
-// Hydra-Pool. If not, see <https://www.gnu.org/licenses/>.
+// Hydrapool. If not, see <https://www.gnu.org/licenses/>.
 
 use clap::Parser;
 use p2poolv2_api::start_api_server;
@@ -36,6 +36,9 @@ use std::time::Duration;
 use tokio::sync::oneshot;
 use tracing::error;
 use tracing::info;
+
+mod background_tasks;
+mod signal;
 
 /// Interval in seconds to poll for new block templates since the last zmq signal
 const GBT_POLL_INTERVAL: u64 = 10; // seconds

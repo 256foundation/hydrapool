@@ -4,11 +4,11 @@ export LOG_LEVEL := env_var_or_default("RUST_LOG", "info")
 default : build
 
 build:
-	@echo "Building Hydra-Pool..."
+	@echo "Building Hydrapool..."
 	cargo build
 
 build-release:
-	@echo "Building Hydra-Pool in release mode..."
+	@echo "Building Hydrapool in release mode..."
 	cargo build --release
 
 # For log level use RUST_LOG=<<level>> just run

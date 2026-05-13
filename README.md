@@ -287,7 +287,7 @@ dashboard.
 
 To build from source, download this repo and build using cargo:
 ```bash
-git clone https://github.com/256-foundation/Hydra-Pool/
+git clone https://github.com/256-foundation/Hydrapool/
 cargo build --release
 ```
 Then enter the settings for your particular node setup in config.toml, and generate an authorization token as explained above.
@@ -355,7 +355,7 @@ cargo build --release
 ## Install Hydrapool Binaries
 
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/256-Foundation/Hydra-Pool/releases/latest/download/hydrapool-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/256-Foundation/Hydrapool/releases/latest/download/hydrapool-installer.sh | sh
 ```
 
 The above will install two binaries in your path:
@@ -367,7 +367,7 @@ Both binaries come with the `--help` option that document the other
 options and commands they support.
 
 Binaries are available on the
-[releases](https://github.com/256-Foundation/Hydra-Pool/releases)
+[releases](https://github.com/256-Foundation/Hydrapool/releases)
 page. We provide Linux, Windows and MacOS binaries. Go to releases
 page to access an older release.
 
