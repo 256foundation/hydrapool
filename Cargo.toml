@@ -1,6 +1,6 @@
 [package]
 name = "hydrapool"
-version = "2.4.0"
+version = "2.5.2"
 edition = "2024"
 rust-version = "1.88.0"
 authors = ["Kulpreet Singh<kp@opdup.com>"]

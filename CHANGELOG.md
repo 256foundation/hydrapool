@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-05-14
+
+### Fixed
+
+- Fix bad releease
+
+## [2.5.1] - 2026-05-14
+
+### Changed
+
+- Update cargo dist ci workflow
+
+## [2.5.0] - 2026-05-14
+
+### Changed
+
+- Update copyright and fix hydrapool name usage
+- Add signal and background tasks modules
+- Add debug log for first notify
+- Bump p2poolv2 libs to v0.10.12
+
 ## [2.4.0] - 2026-01-24
 
 ### Changed
@@ -219,7 +240,26 @@ Bad tag. Ignore.
 
 - Add debian package workflow using cargo-deb
 
-[unreleased]: https://github.com/256-foundation/hydrapool/compare/v1.1.18...HEAD
+[unreleased]: https://github.com/256-foundation/hydrapool/compare/v2.5.1...HEAD
+[2.5.1]: https://github.com/256-foundation/hydrapool/compare/v2.5.0...v2.5.1
+[2.5.0]: https://github.com/256-foundation/hydrapool/compare/v2.4.0...v2.5.0
+[2.4.0]: https://github.com/256-foundation/hydrapool/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/256-foundation/hydrapool/compare/v2.2.2...v2.3.0
+[2.2.2]: https://github.com/256-foundation/hydrapool/compare/v2.2.1...v2.2.2
+[2.2.1]: https://github.com/256-foundation/hydrapool/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/256-foundation/hydrapool/compare/v2.1.9...v2.2.0
+[2.1.9]: https://github.com/256-foundation/hydrapool/compare/v2.1.8...v2.1.9
+[2.1.8]: https://github.com/256-foundation/hydrapool/compare/v2.1.7...v2.1.8
+[2.1.7]: https://github.com/256-foundation/hydrapool/compare/v2.1.6...v2.1.7
+[2.1.6]: https://github.com/256-foundation/hydrapool/compare/v2.1.5...v2.1.6
+[2.1.5]: https://github.com/256-foundation/hydrapool/compare/v2.1.4...v2.1.5
+[2.1.4]: https://github.com/256-foundation/hydrapool/compare/v2.1.3...v2.1.4
+[2.1.3]: https://github.com/256-foundation/hydrapool/compare/v2.1.2...v2.1.3
+[2.1.2]: https://github.com/256-foundation/hydrapool/compare/v2.1.1...v2.1.2
+[2.1.1]: https://github.com/256-foundation/hydrapool/compare/v2.1.0...v2.1.1
+[2.1.0]: https://github.com/256-foundation/hydrapool/compare/v2.0.1...v2.1.0
+[2.0.1]: https://github.com/256-foundation/hydrapool/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/256-foundation/hydrapool/compare/v1.1.18...v2.0.0
 [1.1.18]: https://github.com/256-foundation/hydrapool/compare/v1.1.17...v1.1.18
 [1.1.17]: https://github.com/256-foundation/hydrapool/compare/v1.1.16...v1.1.17
 [1.1.16]: https://github.com/256-foundation/hydrapool/compare/v1.1.15...v1.1.16
