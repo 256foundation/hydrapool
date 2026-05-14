@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.3] - 2026-05-14
+
+### Changed
+
+- Remove windows and mac builds
+
 ## [2.5.2] - 2026-05-14
 
 ### Fixed
