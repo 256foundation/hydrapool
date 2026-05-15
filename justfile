@@ -17,9 +17,10 @@ build-profile:
 
 # Run under perf and generate flamegraph SVG
 # Requires: perf (linux-tools), inferno (cargo install inferno)
+# Uses frame pointer unwinding for reliable stacks in async/tokio code
 profile config="config.toml": build-profile
 	@echo "Recording perf data... Stop hydrapool with Ctrl+C when done."
-	sudo perf record -g --call-graph dwarf -F 99 -o perf.data \
+	sudo perf record -g --call-graph fp -F 99 -o perf.data \
 		./target/release-with-debug/hydrapool --config={{config}}
 	@echo "Generating flamegraph..."
 	sudo perf script -i perf.data | inferno-collapse-perf | inferno-flamegraph > flamegraph.svg
