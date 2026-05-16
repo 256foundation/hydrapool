@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.5] - 2026-05-16
+
+### Fixed
+
+- Fix u64 saturation of total valid shares in prom exposition
+- Fix docker release build on tags
+
 ## [2.5.4] - 2026-05-15
 
 ### Changed
 
 - Optimisations for submit handling from p2poolv2 libs
-
 
 ## [2.5.3] - 2026-05-14
 
