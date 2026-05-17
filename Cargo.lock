@@ -478,7 +478,24 @@ dependencies = [
 
 [[package]]
 name = "bitcoindrpc"
-version = "0.10.12"
+version = "0.10.14"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=v0.10.14#204c065e1cdb12b765673847149db5fb7b39c092"
+dependencies = [
+ "base64 0.22.1",
+ "bitcoin",
+ "hex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "bitcoindrpc"
+version = "0.10.15"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=v0.10.15#984a03c685dc605085f7a486a8343fb9e259c369"
 dependencies = [
  "base64 0.22.1",
  "bitcoin",
@@ -1691,10 +1708,10 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "hydrapool"
-version = "2.5.3"
+version = "2.5.6"
 dependencies = [
  "bitcoin",
- "bitcoindrpc",
+ "bitcoindrpc 0.10.14",
  "clap",
  "p2poolv2_api",
  "p2poolv2_cli",
@@ -3031,7 +3048,8 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "p2poolv2_api"
-version = "0.10.12"
+version = "0.10.15"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=v0.10.15#984a03c685dc605085f7a486a8343fb9e259c369"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -3052,7 +3070,8 @@ dependencies = [
 
 [[package]]
 name = "p2poolv2_cli"
-version = "0.10.12"
+version = "0.10.15"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=v0.10.15#984a03c685dc605085f7a486a8343fb9e259c369"
 dependencies = [
  "base64 0.22.1",
  "bitcoin",
@@ -3075,23 +3094,25 @@ dependencies = [
 
 [[package]]
 name = "p2poolv2_config"
-version = "0.10.12"
+version = "0.10.15"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=v0.10.15#984a03c685dc605085f7a486a8343fb9e259c369"
 dependencies = [
  "bitcoin",
- "bitcoindrpc",
+ "bitcoindrpc 0.10.15",
  "config",
  "serde",
 ]
 
 [[package]]
 name = "p2poolv2_lib"
-version = "0.10.12"
+version = "0.10.15"
+source = "git+https://github.com/p2poolv2/p2poolv2?tag=v0.10.15#984a03c685dc605085f7a486a8343fb9e259c369"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
  "bitcoin",
  "bitcoinconsensus",
- "bitcoindrpc",
+ "bitcoindrpc 0.10.15",
  "chrono",
  "config",
  "dashmap",
