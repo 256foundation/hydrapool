@@ -32,6 +32,7 @@ difficulty_multiplier = 1.0
 # how large your pool is, if you are running private, there is no need
 # to add a pool signature. Maximum length 16 bytes.
 pool_signature = "hydrapool"
+mode = "hydrapool"
 
 [bitcoinrpc]
 # RPC credentials are loaded from env vars

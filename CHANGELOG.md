@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.9] - 2026-06-1222
+
+### Fixed
+
+- Ignore pool ASERT difficulty used in P2Poolv2 when running a
+  hydrapool PPLNS instance
+
 ## [2.5.5] - 2026-05-16
 
 ### Fixed
@@ -260,6 +267,7 @@ Bad tag. Ignore.
 - Add debian package workflow using cargo-deb
 
 [unreleased]: https://github.com/256-foundation/hydrapool/compare/v2.5.1...HEAD
+[2.5.0]: https://github.com/256-foundation/hydrapool/compare/v2.5.8...v2.5.9
 [2.5.1]: https://github.com/256-foundation/hydrapool/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/256-foundation/hydrapool/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/256-foundation/hydrapool/compare/v2.3.0...v2.4.0
