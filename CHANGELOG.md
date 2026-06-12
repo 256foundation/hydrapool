@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Stop waiting for chain sync in hydrapool mode
+
+## [2.5.9] - 2026-06-1222
+
+### Fixed
+
 - Ignore pool ASERT difficulty used in P2Poolv2 when running a
   hydrapool PPLNS instance
 
