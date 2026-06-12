@@ -32,7 +32,10 @@ difficulty_multiplier = 1.0
 # how large your pool is, if you are running private, there is no need
 # to add a pool signature. Maximum length 16 bytes.
 pool_signature = "hydrapool"
+# Set pool mode to hydrapool so we use pplns based on shares
 mode = "hydrapool"
+# In standalone pplns hydrapool mode we don't need to wait for share chain sync
+wait_for_chain_sync = false
 
 [bitcoinrpc]
 # RPC credentials are loaded from env vars
