@@ -1,0 +1,148 @@
+id: hydrapool
+title: "Hydra-Pool"
+version: 2.4.0
+release-notes: "Initial Start9 package for Hydra-Pool v2.4.0"
+license: AGPL-3.0
+wrapper-repo: https://github.com/256-Foundation/Hydra-Pool
+upstream-repo: https://github.com/256-Foundation/Hydra-Pool
+support-site: https://github.com/256-Foundation/Hydra-Pool/issues
+marketing-site: https://hydrapool.org/
+build: ["make"]
+description:
+  short: Open source Bitcoin mining pool with PPLNS accounting
+  long: |
+    Hydra-Pool is an open source Bitcoin mining pool with support for solo
+    mining and PPLNS (Pay Per Last N Shares) accounting. Features direct
+    coinbase payouts (no custody), share accounting API, and built-in
+    Prometheus + Grafana monitoring dashboards.
+assets:
+  license: ../LICENSE
+  icon: icon.png
+  instructions: instructions.md
+main:
+  type: docker
+  image: main
+  entrypoint: docker_entrypoint.sh
+  args: []
+  mounts:
+    main: /data
+    compat: /mnt/assets
+  io-format: yaml
+  inject: false
+  sigterm-timeout: 30s
+health-checks:
+  api:
+    name: API
+    success-message: Hydra-Pool API is ready
+    type: docker
+    image: main
+    entrypoint: health_check.sh
+    args: ["api"]
+    io-format: yaml
+    inject: false
+  stratum:
+    name: Stratum
+    success-message: Stratum server is accepting connections
+    type: docker
+    image: main
+    entrypoint: health_check.sh
+    args: ["stratum"]
+    io-format: yaml
+    inject: false
+config:
+  get:
+    type: script
+  set:
+    type: script
+properties:
+  type: script
+volumes:
+  main:
+    type: data
+  compat:
+    type: assets
+interfaces:
+  stratum:
+    name: Stratum Mining
+    description: Stratum v1 mining protocol endpoint for connecting miners
+    tor-config:
+      port-mapping:
+        3333: "3333"
+    ui: false
+    protocols:
+      - tcp
+  api:
+    name: API & Metrics
+    description: REST API and Prometheus metrics endpoint
+    tor-config:
+      port-mapping:
+        46884: "46884"
+    lan-config:
+      443:
+        ssl: true
+        internal: 46884
+    ui: false
+    protocols:
+      - tcp
+      - http
+  grafana:
+    name: Grafana Dashboard
+    description: Monitoring dashboard for pool statistics
+    tor-config:
+      port-mapping:
+        3000: "3000"
+    lan-config:
+      443:
+        ssl: true
+        internal: 3000
+    ui: true
+    protocols:
+      - tcp
+      - http
+dependencies:
+  bitcoind:
+    version: ">=0.21.1.1 <29.0.0"
+    requirement:
+      type: required
+    description: Hydra-Pool requires a fully synced Bitcoin Core node for block template generation and share validation.
+    config:
+      check:
+        type: script
+      auto-configure:
+        type: script
+backup:
+  create:
+    type: docker
+    image: compat
+    system: true
+    entrypoint: compat
+    args:
+      - duplicity
+      - create
+      - /mnt/backup
+      - /data
+    mounts:
+      BACKUP: /mnt/backup
+      main: /data
+  restore:
+    type: docker
+    image: compat
+    system: true
+    entrypoint: compat
+    args:
+      - duplicity
+      - restore
+      - /mnt/backup
+      - /data
+    mounts:
+      BACKUP: /mnt/backup
+      main: /data
+migrations:
+  from:
+    "*":
+      type: script
+      args: ["from"]
+  to:
+    "*":
+      type: script
+      args: ["to"]
