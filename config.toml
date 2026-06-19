@@ -11,15 +11,14 @@ minimum_difficulty = 1
 # The bitcoin address to use for first jobs when there are no
 # shares. The default provided is the 256 Foundation address.
 bootstrap_address = "bc1qce93hy5rhg02s6aeu7mfdvxg76x66pqqtrvzs3"
-# Any donation amount for developers to be sent to donation address. Default no donation.
-donation_address = "bc1qce93hy5rhg02s6aeu7mfdvxg76x66pqqtrvzs3"
-# In basis points, 1% = 100 basis points. Default 0
-donation = 10000
 ignore_difficulty = true
-# Any fee amount for node/hydrapool provider to be sent to fee address. Default no fee.
-# fee_address = "<your fee address here>"
-# In basis points, 1% = 100 basis points. Default 0
-# fee = 200
+# Do not use Hydrapool's normal extra-output donation/fee fields in
+# GridPool mode. GridPool validates the shared payout outputs exactly.
+#
+# Hosted GridPool Stratum fees are implemented by personalized work
+# scheduling instead: every Nth job uses gridpool_fee_address as slot 0.
+# gridpool_fee_address = "<your GridPool hosted-Stratum fee address>"
+# gridpool_fee_every_n_jobs = 50
 zmqpubhashblock = "tcp://127.0.0.1:28334"
 # The network can be "main", "testnet4" or "signet"
 network = "main"
@@ -33,10 +32,10 @@ difficulty_multiplier = 1.0
 # to add a pool signature. Maximum length 16 bytes.
 pool_signature = "hydrapool"
 payout_file_path = "./payout_file_example.json"  # Triggers file mode
-downstream_payout_url = "https://boot.gridlabs.science/api/mining/payouts"  # Optional: Enables fetcher
+downstream_payout_url = "http://127.0.0.1:5000/api/mining/payouts"  # Optional: Enables fetcher
 payout_refresh_interval = 30
 # Optional high-difficulty share relay (separate from payout URL)
-high_diff_share_submit_url = "https://boot.gridlabs.science/api/mining/share"
+high_diff_share_submit_url = "http://127.0.0.1:5000/api/mining/share"
 # Target average cadence for share submissions (adaptive difficulty threshold)
 high_diff_share_submit_interval_secs = 10
 # How often to recompute adaptive submission threshold
@@ -46,7 +45,7 @@ high_diff_share_adjust_interval_secs = 30
 # RPC credentials are loaded from env vars
 url = "http://127.0.0.1:8332"
 username = "bitcoin"
-password = "47mvwsxosyep744le24i"
+password = "change-me"
 
 [logging]
 # Specify a file path for the log file, if no log file is specified, console logging will be used
