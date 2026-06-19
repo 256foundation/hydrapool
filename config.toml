@@ -31,7 +31,7 @@ difficulty_multiplier = 1.0
 # how large your pool is, if you are running private, there is no need
 # to add a pool signature. Maximum length 16 bytes.
 pool_signature = "hydrapool"
-payout_file_path = "./payout_file_example.json"  # Triggers file mode
+payout_file_path = "/tmp/hydrapool_gridpool_payouts.json"  # Triggers file mode without modifying tracked examples
 downstream_payout_url = "http://127.0.0.1:5000/api/mining/payouts"  # Optional: Enables fetcher
 payout_refresh_interval = 30
 # Optional high-difficulty share relay (separate from payout URL)
