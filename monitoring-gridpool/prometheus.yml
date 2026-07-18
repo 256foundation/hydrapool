@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  external_labels:
+    monitor: gridpool-hydrapool-mainnet
+
+scrape_configs:
+  - job_name: Hydrapool
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 127.0.0.1:46884
+    metrics_path: /metrics
+    basic_auth:
+      username: hydrapool
+      password: hydrapool
