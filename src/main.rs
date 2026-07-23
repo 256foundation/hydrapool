@@ -36,6 +36,8 @@ use p2poolv2_lib::stratum::zmq_listener::{ZmqListener, ZmqListenerTrait};
 use reqwest::Url;
 use serde::Serialize;
 use serde_json::json; // For building JSON if needed
+use std::collections::HashMap;
+use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::process::exit;
@@ -77,6 +79,8 @@ fn default_high_diff_submit_queue_size() -> usize {
 #[derive(Debug, Default)]
 struct HydrapoolStratumLocalConfig {
     high_diff_share_submit_url: Option<Url>,
+    gridpool_share_telemetry_url: Option<Url>,
+    gridpool_adapter_token: Option<String>,
     high_diff_share_submit_interval_secs: u64,
     high_diff_share_adjust_interval_secs: u64,
     high_diff_share_submit_queue_size: usize,
@@ -86,6 +90,8 @@ impl HydrapoolStratumLocalConfig {
     fn with_defaults() -> Self {
         Self {
             high_diff_share_submit_url: None,
+            gridpool_share_telemetry_url: None,
+            gridpool_adapter_token: None,
             high_diff_share_submit_interval_secs: default_high_diff_submit_interval_secs(),
             high_diff_share_adjust_interval_secs: default_high_diff_adjust_interval_secs(),
             high_diff_share_submit_queue_size: default_high_diff_submit_queue_size(),
@@ -102,6 +108,38 @@ struct BootShareSubmission {
     merkle_path: Vec<String>,
     nonce: i64,
     difficulty: f64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GridPoolTelemetryBatch {
+    source_instance: String,
+    entries: Vec<GridPoolTelemetryEntry>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GridPoolTelemetryEntry {
+    channel_id: String,
+    payout_address: String,
+    username: String,
+    window_start_utc: chrono::DateTime<chrono::Utc>,
+    window_end_utc: chrono::DateTime<chrono::Utc>,
+    accepted_share_count: u64,
+    rejected_share_count: u64,
+    accepted_work_difficulty: f64,
+    fee_work_difficulty: f64,
+    best_difficulty: f64,
+}
+
+struct TelemetryAccumulator {
+    payout_address: String,
+    username: String,
+    window_start_utc: chrono::DateTime<chrono::Utc>,
+    window_end_utc: chrono::DateTime<chrono::Utc>,
+    accepted_share_count: u64,
+    accepted_work_difficulty: f64,
+    best_difficulty: f64,
 }
 
 /// Wait for shutdown signals (Ctrl+C, SIGTERM on Unix) or internal shutdown signal.
@@ -294,6 +332,22 @@ async fn main() -> Result<(), String> {
         .high_diff_share_submit_queue_size
         .max(1)
         .min(HIGH_DIFF_SHARES_BUFFER_SIZE);
+    let telemetry_submitter = match (
+        local_config.gridpool_share_telemetry_url.clone(),
+        local_config.gridpool_adapter_token.clone(),
+    ) {
+        (Some(url), Some(token)) => {
+            let (tx, rx) = tokio::sync::mpsc::channel::<GridPoolTelemetryBatch>(16);
+            info!("GridPool vardiff telemetry enabled: url={}", url);
+            tokio::spawn(start_gridpool_telemetry_submitter(url, token, rx));
+            Some(tx)
+        }
+        (Some(_), None) => {
+            info!("GridPool vardiff telemetry disabled: GRIDPOOL_ADAPTER_TOKEN is not set");
+            None
+        }
+        _ => None,
+    };
 
     if let Some(url) = boot_submit_url {
         info!(
@@ -307,6 +361,7 @@ async fn main() -> Result<(), String> {
             stratum_emissions_rx,
             node_emissions_tx,
             Some(boot_submit_tx),
+            telemetry_submitter,
             high_diff_submit_interval_secs,
             high_diff_adjust_interval_secs,
         ));
@@ -316,6 +371,7 @@ async fn main() -> Result<(), String> {
             stratum_emissions_rx,
             node_emissions_tx,
             None,
+            telemetry_submitter,
             high_diff_submit_interval_secs,
             high_diff_adjust_interval_secs,
         ));
@@ -444,6 +500,13 @@ fn load_local_config(path: &str) -> Result<HydrapoolStratumLocalConfig, String> 
         .get_string("stratum.high_diff_share_submit_url")
         .ok()
         .and_then(|url| Url::parse(&url).ok());
+    local.gridpool_share_telemetry_url = settings
+        .get_string("stratum.gridpool_share_telemetry_url")
+        .ok()
+        .and_then(|url| Url::parse(&url).ok());
+    local.gridpool_adapter_token = env::var("GRIDPOOL_ADAPTER_TOKEN")
+        .ok()
+        .filter(|value| !value.trim().is_empty());
 
     if let Ok(value) = settings.get_int("stratum.high_diff_share_submit_interval_secs") {
         local.high_diff_share_submit_interval_secs = value.max(1) as u64;
@@ -462,6 +525,7 @@ async fn forward_emissions_with_adaptive_threshold(
     mut stratum_emissions_rx: tokio::sync::mpsc::Receiver<Emission>,
     node_emissions_tx: tokio::sync::mpsc::Sender<Emission>,
     boot_submit_tx: Option<tokio::sync::mpsc::Sender<BootShareSubmission>>,
+    telemetry_submit_tx: Option<tokio::sync::mpsc::Sender<GridPoolTelemetryBatch>>,
     target_submit_interval_secs: u64,
     adjust_interval_secs: u64,
 ) {
@@ -469,7 +533,9 @@ async fn forward_emissions_with_adaptive_threshold(
     let adjust_interval = Duration::from_secs(adjust_interval_secs.max(1));
 
     let mut current_threshold: u64 = 1;
+    let mut threshold_calibrated = false;
     let mut observed_difficulties: Vec<u64> = Vec::new();
+    let mut telemetry: HashMap<String, TelemetryAccumulator> = HashMap::new();
     let mut last_adjust_at = tokio::time::Instant::now();
     let mut seen_count: u64 = 0;
     let mut queued_count: u64 = 0;
@@ -480,6 +546,7 @@ async fn forward_emissions_with_adaptive_threshold(
         seen_count = seen_count.saturating_add(1);
         let truediff = get_true_difficulty(&emission.header.block_hash()) as u64;
         observed_difficulties.push(truediff);
+        record_telemetry_sample(&mut telemetry, &emission, truediff);
 
         let elapsed = last_adjust_at.elapsed();
         if elapsed >= adjust_interval {
@@ -510,6 +577,13 @@ async fn forward_emissions_with_adaptive_threshold(
                 );
             }
             current_threshold = new_threshold;
+            threshold_calibrated = true;
+            if let Some(ref tx) = telemetry_submit_tx {
+                let batch = build_telemetry_batch(&mut telemetry);
+                if !batch.entries.is_empty() && tx.try_send(batch).is_err() {
+                    debug!("Dropped GridPool telemetry batch because submit queue is full");
+                }
+            }
             observed_difficulties.clear();
             last_adjust_at = tokio::time::Instant::now();
             seen_count = 0;
@@ -518,7 +592,7 @@ async fn forward_emissions_with_adaptive_threshold(
             dropped_count = 0;
         }
 
-        if let Some(ref tx) = boot_submit_tx {
+        if threshold_calibrated && let Some(ref tx) = boot_submit_tx {
             if truediff >= current_threshold {
                 if let Some(payload) = build_boot_submission(&emission, truediff) {
                     let miner = payload.miner_address.clone();
@@ -543,6 +617,64 @@ async fn forward_emissions_with_adaptive_threshold(
             info!("Node emission channel closed. Stopping emission forwarder.");
             break;
         }
+    }
+}
+
+fn record_telemetry_sample(
+    telemetry: &mut HashMap<String, TelemetryAccumulator>,
+    emission: &Emission,
+    achieved_difficulty: u64,
+) {
+    let payout_address = emission.pplns.btcaddress.clone().unwrap_or_default();
+    if payout_address.is_empty() {
+        return;
+    }
+
+    let username = emission.pplns.workername.clone().unwrap_or_default();
+    let channel_id = if username.is_empty() {
+        payout_address.clone()
+    } else {
+        format!("{payout_address}.{username}")
+    };
+    let now = chrono::Utc::now();
+    let entry = telemetry
+        .entry(channel_id)
+        .or_insert_with(|| TelemetryAccumulator {
+            payout_address,
+            username,
+            window_start_utc: now,
+            window_end_utc: now,
+            accepted_share_count: 0,
+            accepted_work_difficulty: 0.0,
+            best_difficulty: 0.0,
+        });
+    entry.window_end_utc = now;
+    entry.accepted_share_count = entry.accepted_share_count.saturating_add(1);
+    entry.accepted_work_difficulty += emission.pplns.difficulty as f64;
+    entry.best_difficulty = entry.best_difficulty.max(achieved_difficulty as f64);
+}
+
+fn build_telemetry_batch(
+    telemetry: &mut HashMap<String, TelemetryAccumulator>,
+) -> GridPoolTelemetryBatch {
+    let entries = telemetry
+        .drain()
+        .map(|(channel_id, entry)| GridPoolTelemetryEntry {
+            channel_id,
+            payout_address: entry.payout_address,
+            username: entry.username,
+            window_start_utc: entry.window_start_utc,
+            window_end_utc: entry.window_end_utc,
+            accepted_share_count: entry.accepted_share_count,
+            rejected_share_count: 0,
+            accepted_work_difficulty: entry.accepted_work_difficulty,
+            fee_work_difficulty: 0.0,
+            best_difficulty: entry.best_difficulty,
+        })
+        .collect();
+    GridPoolTelemetryBatch {
+        source_instance: "hydrapool-local".to_string(),
+        entries,
     }
 }
 
@@ -629,12 +761,12 @@ async fn start_boot_share_submitter(
                     break;
                 }
                 Ok(resp) => {
-                    if attempt >= 3 {
-                        debug!(
-                            "Failed submitting high-diff share to {} status={} after {} attempts",
-                            submit_url,
-                            resp.status(),
-                            attempt
+                    let status = resp.status();
+                    let response_body = resp.text().await.unwrap_or_default();
+                    if status.is_client_error() || attempt >= 3 {
+                        info!(
+                            "Failed submitting high-diff share to {} status={} reason={} after {} attempts",
+                            submit_url, status, response_body, attempt
                         );
                         break;
                     }
@@ -650,6 +782,43 @@ async fn start_boot_share_submitter(
                 }
             }
             tokio::time::sleep(Duration::from_millis(250 * u64::from(attempt))).await;
+        }
+    }
+}
+
+async fn start_gridpool_telemetry_submitter(
+    submit_url: Url,
+    adapter_token: String,
+    mut telemetry_rx: tokio::sync::mpsc::Receiver<GridPoolTelemetryBatch>,
+) {
+    let client = reqwest::Client::new();
+    while let Some(batch) = telemetry_rx.recv().await {
+        let response = client
+            .post(submit_url.clone())
+            .header("X-GridPool-Adapter-Token", &adapter_token)
+            .header("X-GridPool-Adapter-Type", "hydrapool")
+            .json(&batch)
+            .send()
+            .await;
+        match response {
+            Ok(resp) if resp.status().is_success() => {
+                debug!(
+                    "Submitted GridPool vardiff telemetry entries={} status={}",
+                    batch.entries.len(),
+                    resp.status()
+                );
+            }
+            Ok(resp) => {
+                let status = resp.status();
+                let body = resp.text().await.unwrap_or_default();
+                info!(
+                    "Failed submitting GridPool vardiff telemetry status={} reason={}",
+                    status, body
+                );
+            }
+            Err(error) => {
+                info!("Failed submitting GridPool vardiff telemetry: {}", error);
+            }
         }
     }
 }

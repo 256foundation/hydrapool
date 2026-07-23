@@ -37,10 +37,13 @@ downstream_payout_url = "http://127.0.0.1:5000/api/mining/payouts"  # Optional: 
 payout_refresh_interval = 30
 # Optional high-difficulty share relay (separate from payout URL)
 high_diff_share_submit_url = "http://127.0.0.1:5000/api/mining/share"
+# Authenticated vardiff accounting for the local GridPool UI. Set
+# GRIDPOOL_ADAPTER_TOKEN in the service environment; do not store it here.
+gridpool_share_telemetry_url = "http://127.0.0.1:5000/api/mining/local/share-telemetry"
 # Target average cadence for share submissions (adaptive difficulty threshold)
-high_diff_share_submit_interval_secs = 10
+high_diff_share_submit_interval_secs = 60
 # How often to recompute adaptive submission threshold
-high_diff_share_adjust_interval_secs = 30
+high_diff_share_adjust_interval_secs = 60
 
 [bitcoinrpc]
 # RPC credentials are loaded from env vars
