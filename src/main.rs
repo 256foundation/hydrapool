@@ -611,7 +611,12 @@ async fn start_boot_share_submitter(
         let mut attempt: u8 = 0;
         loop {
             attempt = attempt.saturating_add(1);
-            let response = client.post(submit_url.clone()).json(&payload).send().await;
+            let response = client
+                .post(submit_url.clone())
+                .header("X-GridPool-Mining-Source", "hydrapool")
+                .json(&payload)
+                .send()
+                .await;
             match response {
                 Ok(resp) if resp.status().is_success() => {
                     debug!(
