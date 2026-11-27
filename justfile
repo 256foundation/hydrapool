@@ -28,7 +28,7 @@ profile config="config.toml": build-profile
 
 # For log level use RUST_LOG=<<level>> just run
 run config="config.toml":
-	RUST_LOG={{LOG_LEVEL}} cargo run -- --config={{config}}
+	RUST_LOG={{LOG_LEVEL}} cargo run -- --config={{quote(config)}}
 
 check:
 	cargo check
