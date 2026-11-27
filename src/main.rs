@@ -73,13 +73,13 @@ async fn main() -> ExitCode {
     let args = Args::parse();
 
     // Load configuration
-    let config = Config::load(&args.config);
-    if config.is_err() {
-        let err = config.unwrap_err();
-        error!("Failed to load config: {err}");
+    let Ok(config) = Config::load(&args.config) else {
+        eprintln!(
+            "Failed to load config {:?}. Check that the file is readable and contains valid Hydrapool settings.",
+            args.config,
+        );
         return ExitCode::FAILURE;
-    }
-    let config = config.unwrap();
+    };
     // Configure logging based on config
     // hold guards to keep non-blocking writers alive
     let _guards = match setup_logging(&config.logging) {
